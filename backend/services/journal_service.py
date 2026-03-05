@@ -128,8 +128,36 @@ def find_journal_by_issn(db: Session, issn: str) -> Optional[Journal]:
     )
 
 
+def find_journal_by_title_and_publisher(
+    db: Session, title: str, publisher: str
+) -> Optional[Journal]:
+    """Búsqueda por título exacto + publisher parcial (case-insensitive).
+
+    El publisher de OpenAlex ("Multidisciplinary Digital Publishing Institute")
+    raramente coincide exacto con el de JCR ("MDPI"). Usamos ILIKE con las
+    primeras palabras para cubrir variantes del mismo publisher.
+    """
+    title_lower = title.lower().strip()
+    # Tomar las primeras 2 palabras del publisher para mayor tolerancia a variantes
+    publisher_words = publisher.strip().split()
+    publisher_fragment = " ".join(publisher_words[:2]).lower()
+
+    title_match = or_(
+        func.lower(Journal.title) == title_lower,
+        func.lower(Journal.title_abbrev) == title_lower,
+        func.lower(Journal.iso_abbrev) == title_lower,
+    )
+    publisher_match = func.lower(Journal.publisher_name).contains(publisher_fragment)
+
+    return (
+        db.query(Journal)
+        .filter(title_match, publisher_match)
+        .first()
+    )
+
+
 def find_journal_by_title(db: Session, title: str) -> Optional[Journal]:
-    """Búsqueda por título exacto (case-insensitive) o abreviatura."""
+    """Búsqueda por título exacto (case-insensitive) o abreviatura. Sin publisher."""
     title_lower = title.lower().strip()
 
     return (

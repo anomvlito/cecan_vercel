@@ -13,6 +13,7 @@ from services.openalex_service import fetch_work_by_doi
 from services.journal_service import (
     find_journal_by_issn,
     find_journal_by_title,
+    find_journal_by_title_and_publisher,
     derive_quartile,
     derive_percentile,
 )
@@ -104,6 +105,11 @@ async def upload_pdf(
                 if journal:
                     break
 
+            if not journal and work_meta.journal_name and work_meta.publisher:
+                journal = find_journal_by_title_and_publisher(
+                    db, work_meta.journal_name, work_meta.publisher
+                )
+
             if not journal and work_meta.journal_name:
                 journal = find_journal_by_title(db, work_meta.journal_name)
 
@@ -188,6 +194,11 @@ async def enrich_with_doi(
             journal = find_journal_by_issn(db, issn)
             if journal:
                 break
+
+        if not journal and work_meta.journal_name and work_meta.publisher:
+            journal = find_journal_by_title_and_publisher(
+                db, work_meta.journal_name, work_meta.publisher
+            )
 
         if not journal and work_meta.journal_name:
             journal = find_journal_by_title(db, work_meta.journal_name)
