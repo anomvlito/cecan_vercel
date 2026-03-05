@@ -136,13 +136,34 @@ def import_excel(filepath: str, batch_size: int = 500) -> None:
 
 
 def _upsert_batch(db, records: list[dict]) -> None:
-    """Upsert batch usando PostgreSQL ON CONFLICT."""
-    stmt = pg_insert(Journal).values(records)
-    stmt = stmt.on_conflict_do_update(
-        index_elements=["issn", "year"],
-        set_={col: stmt.excluded[col] for col in records[0].keys() if col not in ("issn", "year")},
-    )
-    db.execute(stmt)
+    """Upsert batch usando PostgreSQL ON CONFLICT.
+
+    Estrategia dual:
+    - Con ISSN: ON CONFLICT (issn, year) — el índice único habitual
+    - Sin ISSN: ON CONFLICT (title, year) — en PostgreSQL NULL != NULL,
+      por lo que filas con issn=NULL nunca colisionan en el índice (issn, year)
+      y se duplicarían en cada reimportación. Usamos (title, year) como
+      clave alternativa para deduplicar.
+    """
+    with_issn = [r for r in records if r.get("issn")]
+    without_issn = [r for r in records if not r.get("issn")]
+
+    if with_issn:
+        stmt = pg_insert(Journal).values(with_issn)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["issn", "year"],
+            set_={col: stmt.excluded[col] for col in with_issn[0].keys() if col not in ("issn", "year")},
+        )
+        db.execute(stmt)
+
+    if without_issn:
+        stmt = pg_insert(Journal).values(without_issn)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["title", "year"],
+            set_={col: stmt.excluded[col] for col in without_issn[0].keys() if col not in ("title", "year")},
+        )
+        db.execute(stmt)
+
     db.commit()
 
 
