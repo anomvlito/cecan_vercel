@@ -52,6 +52,15 @@ class PublicationRead(BaseModel):
         return self.jif_percentile_snapshot is not None and self.jif_percentile_snapshot >= 90.0
 
 
+class JournalListResponse(BaseModel):
+    """Respuesta paginada para el listado de revistas."""
+    items: list[JournalRead]
+    total: int
+    page: int
+    limit: int
+    pages: int
+
+
 class UploadResult(BaseModel):
     """Resultado del proceso completo de upload + enrichment."""
     publication: PublicationRead

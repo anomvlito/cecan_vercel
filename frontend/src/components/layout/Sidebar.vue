@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { BookOpen, Upload, FlaskConical } from 'lucide-vue-next'
+import { BookOpen, Upload, FlaskConical, BookMarked } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const navItems = [
   { to: '/publications', icon: BookOpen, label: 'Publicaciones' },
   { to: '/upload', icon: Upload, label: 'Subir PDF' },
+  { to: '/journals', icon: BookMarked, label: 'Revistas JCR' },
 ]
 </script>
 

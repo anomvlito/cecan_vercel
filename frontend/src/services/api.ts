@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Publication, UploadResult } from '@/types/publication'
+import type { Publication, UploadResult, JournalListResponse } from '@/types/publication'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
@@ -46,6 +46,27 @@ export const publicationsApi = {
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } },
     )
+    return data
+  },
+}
+
+export const journalsApi = {
+  search: async (params: {
+    q?: string
+    quartile?: string
+    min_percentile?: number | null
+    max_percentile?: number | null
+    page?: number
+    limit?: number
+  }): Promise<JournalListResponse> => {
+    const p: Record<string, string | number> = {}
+    if (params.q) p.q = params.q
+    if (params.quartile) p.quartile = params.quartile
+    if (params.min_percentile != null) p.min_percentile = params.min_percentile
+    if (params.max_percentile != null) p.max_percentile = params.max_percentile
+    if (params.page) p.page = params.page
+    if (params.limit) p.limit = params.limit
+    const { data } = await api.get<JournalListResponse>('/journals', { params: p })
     return data
   },
 }

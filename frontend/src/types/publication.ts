@@ -61,6 +61,14 @@ export interface UploadJob {
   enriching: boolean
 }
 
+export interface JournalListResponse {
+  items: Journal[]
+  total: number
+  page: number
+  limit: number
+  pages: number
+}
+
 export const QUARTILE_COLORS: Record<string, string> = {
   Q1: 'bg-green-100 text-green-800',
   Q2: 'bg-blue-100 text-blue-800',
