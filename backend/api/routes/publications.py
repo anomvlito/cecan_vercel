@@ -3,10 +3,11 @@ import json
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from database.session import get_db
 from core.models import Publication
-from core.schemas import UploadResult, PublicationRead
+from core.schemas import JournalRead, UploadResult, PublicationRead
 from services.doi_extractor import extract_doi_from_pdf_bytes
 from services.openalex_service import fetch_work_by_doi
 from services.journal_service import find_journal_by_issn, find_journal_by_title
@@ -27,7 +28,7 @@ async def upload_pdf(
     1. Validar archivo PDF
     2. Extraer DOI del texto
     3. Consultar OpenAlex para obtener ISSN y metadatos
-    4. Buscar revista en BD JCR por ISSN
+    4. Buscar revista en BD JCR por ISSN (todos los ISSNs disponibles)
     5. Guardar publicación con métricas
 
     Returns:
@@ -43,6 +44,15 @@ async def upload_pdf(
         )
 
     doi, doi_method = extract_doi_from_pdf_bytes(pdf_bytes)
+
+    # Verificar DOI duplicado antes de procesar
+    if doi:
+        existing = db.query(Publication).filter(Publication.doi == doi).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Ya existe una publicación con el DOI {doi} (id={existing.id})",
+            )
 
     pub = Publication(
         pdf_filename=file.filename,
@@ -68,11 +78,13 @@ async def upload_pdf(
             pub.openalex_data = json.dumps(work_meta.raw)
             pub.journal_issn_raw = work_meta.issn
 
-            # Buscar journal en BD JCR
-            if work_meta.issn:
-                journal = find_journal_by_issn(db, work_meta.issn)
-            if not journal and work_meta.eissn:
-                journal = find_journal_by_issn(db, work_meta.eissn)
+            # Buscar journal usando todos los ISSNs disponibles de OpenAlex
+            for issn in work_meta.issn_list:
+                journal = find_journal_by_issn(db, issn)
+                if journal:
+                    break
+
+            # Fallback por nombre de revista
             if not journal and work_meta.journal_name:
                 journal = find_journal_by_title(db, work_meta.journal_name)
 
@@ -83,9 +95,18 @@ async def upload_pdf(
                 pub.jif_percentile_snapshot = journal.jif_percentile
                 pub.status = "enriched"
 
-    db.add(pub)
-    db.commit()
-    db.refresh(pub)
+    try:
+        db.add(pub)
+        db.commit()
+        db.refresh(pub)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Ya existe una publicación con el DOI {doi}",
+        )
+
+    journal_read = JournalRead.model_validate(journal) if journal else None
 
     return UploadResult(
         publication=PublicationRead.model_validate(pub),
@@ -93,7 +114,7 @@ async def upload_pdf(
         doi=doi,
         doi_method=doi_method if doi else None,
         journal_found=bool(journal),
-        journal=None,  # se carga via relationship si es necesario
+        journal=journal_read,
         message=_build_message(doi, journal),
     )
 
@@ -124,4 +145,4 @@ def _build_message(doi: Optional[str], journal) -> str:
         return "PDF subido correctamente. No se encontró DOI en el documento."
     if not journal:
         return f"DOI encontrado ({doi}). No se encontró la revista en la base de datos JCR."
-    return f"DOI encontrado y revista vinculada exitosamente. Q{journal.quartile_rank}, IF: {journal.impact_factor}"
+    return f"DOI encontrado y revista vinculada exitosamente. {journal.quartile_rank}, IF: {journal.impact_factor}"

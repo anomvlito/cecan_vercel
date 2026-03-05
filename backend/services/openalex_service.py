@@ -13,8 +13,9 @@ class WorkMetadata:
     doi: str
     title: Optional[str]
     year: Optional[int]
-    issn: Optional[str]
-    eissn: Optional[str]
+    issn: Optional[str]       # ISSN primario (linking ISSN preferido)
+    eissn: Optional[str]      # ISSN secundario
+    issn_list: list[str]      # Todos los ISSNs disponibles para búsqueda exhaustiva
     journal_name: Optional[str]
     publisher: Optional[str]
     volume: Optional[str]
@@ -45,18 +46,28 @@ async def fetch_work_by_doi(doi: str) -> Optional[WorkMetadata]:
     venue = data.get("primary_location", {}) or {}
     source = venue.get("source") or {}
 
-    issns = source.get("issn", []) or []
+    issns_raw = source.get("issn", []) or []
     issn_l = source.get("issn_l")
 
-    issn = issns[0] if issns else issn_l
-    eissn = issns[1] if len(issns) > 1 else None
+    # issn_l es el "linking ISSN" — más estable para búsquedas
+    # Usarlo como primario; el array puede contener print + electronic sin orden garantizado
+    primary_raw = issn_l or (issns_raw[0] if issns_raw else None)
+    secondary_raw = next(
+        (i for i in issns_raw if _clean_issn(i) != _clean_issn(primary_raw)),
+        None,
+    )
+
+    # Lista deduplicada de todos los ISSNs disponibles
+    all_raw = ([issn_l] if issn_l else []) + issns_raw
+    issn_list = list(dict.fromkeys(_clean_issn(i) for i in all_raw if i))
 
     return WorkMetadata(
         doi=doi,
         title=data.get("title"),
         year=data.get("publication_year"),
-        issn=_clean_issn(issn),
-        eissn=_clean_issn(eissn),
+        issn=_clean_issn(primary_raw),
+        eissn=_clean_issn(secondary_raw),
+        issn_list=issn_list,
         journal_name=source.get("display_name"),
         publisher=source.get("publisher"),
         volume=data.get("biblio", {}).get("volume"),
@@ -68,9 +79,13 @@ async def fetch_work_by_doi(doi: str) -> Optional[WorkMetadata]:
 
 
 def _clean_issn(issn: Optional[str]) -> Optional[str]:
+    """Normaliza ISSN al formato estándar XXXX-XXXX."""
     if not issn:
         return None
-    return issn.replace("-", "").strip() if "-" not in issn else issn.strip()
+    cleaned = issn.replace("-", "").strip().upper()
+    if len(cleaned) == 8:
+        return f"{cleaned[:4]}-{cleaned[4:]}"
+    return cleaned
 
 
 def _extract_pages(biblio: dict) -> Optional[str]:
