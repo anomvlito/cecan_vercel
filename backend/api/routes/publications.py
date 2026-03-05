@@ -67,13 +67,24 @@ async def upload_pdf(
         extracted_doi = doi.strip()
         doi_method = "manual"
 
-    # Verificar duplicado
+    # Verificar duplicado por DOI
     if extracted_doi:
         existing = db.query(Publication).filter(Publication.doi == extracted_doi).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Ya existe una publicación con el DOI {extracted_doi} (id={existing.id})",
+            )
+
+    # Verificar duplicado por filename
+    if filename:
+        existing_by_file = db.query(Publication).filter(
+            Publication.pdf_filename == filename
+        ).first()
+        if existing_by_file:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Ya existe una publicación con el archivo '{filename}' (id={existing_by_file.id})",
             )
 
     pub = Publication(
