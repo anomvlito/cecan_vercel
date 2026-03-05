@@ -72,7 +72,11 @@ def parse_int(value) -> int | None:
 def import_excel(filepath: str, batch_size: int = 500) -> None:
     print(f"Abriendo {filepath}...")
     wb = openpyxl.load_workbook(filepath, read_only=True)
-    ws = wb.active
+    # Leer siempre la hoja "Journals" — wb.active puede apuntar a "Citing" o "Cited"
+    # si el archivo se guardó con otra hoja seleccionada.
+    sheet_name = "Journals"
+    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.active
+    print(f"Leyendo hoja: '{ws.title}' (~{ws.max_row} filas)")
 
     headers = [str(cell.value).strip() if cell.value else "" for cell in next(ws.rows)]
     print(f"Columnas encontradas: {len(headers)}")
