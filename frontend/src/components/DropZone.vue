@@ -11,6 +11,7 @@
       ref="fileInput"
       type="file"
       accept=".pdf,application/pdf"
+      multiple
       class="hidden"
       @change="onInputChange"
     />
@@ -24,7 +25,7 @@
         <p class="text-lg font-semibold text-gray-800">
           {{ isDragging ? 'Suelta el PDF aquí' : 'Arrastra tu PDF aquí' }}
         </p>
-        <p class="text-sm text-gray-400 mt-1">o haz clic para seleccionar un archivo</p>
+        <p class="text-sm text-gray-400 mt-1">o haz clic para seleccionar archivos</p>
       </div>
 
       <div class="flex items-center gap-2 text-xs text-gray-400">
@@ -40,7 +41,7 @@ import { ref } from 'vue'
 import { Upload, FileText } from 'lucide-vue-next'
 
 const emit = defineEmits<{
-  fileSelected: [file: File]
+  filesSelected: [files: File[]]
 }>()
 
 const isDragging = ref(false)
@@ -48,21 +49,18 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 function onDrop(event: DragEvent): void {
   isDragging.value = false
-  const file = event.dataTransfer?.files[0]
-  if (file) emitIfPdf(file)
+  const files = Array.from(event.dataTransfer?.files ?? []).filter((f) =>
+    f.name.toLowerCase().endsWith('.pdf'),
+  )
+  if (files.length > 0) emit('filesSelected', files)
 }
 
 function onInputChange(event: Event): void {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) emitIfPdf(file)
-}
-
-function emitIfPdf(file: File): void {
-  if (!file.name.toLowerCase().endsWith('.pdf')) {
-    alert('Solo se aceptan archivos PDF')
-    return
-  }
-  emit('fileSelected', file)
+  const files = Array.from(input.files ?? []).filter((f) =>
+    f.name.toLowerCase().endsWith('.pdf'),
+  )
+  if (files.length > 0) emit('filesSelected', files)
+  input.value = ''
 }
 </script>
