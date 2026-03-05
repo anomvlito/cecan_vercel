@@ -29,7 +29,7 @@ class Journal(Base):
     norm_eigenfactor = Column(Float, nullable=True)
 
     # Rankings
-    quartile_rank = Column(String(5), nullable=True)   # Q1, Q2, Q3, Q4
+    quartile_rank = Column(String(20), nullable=True)   # Q1, Q2, Q3, Q4 o ranking "10/100"
     jif_percentile = Column(Float, nullable=True)
     category_ranking = Column(String(100), nullable=True)  # e.g. "15/250"
     categories_code = Column(String(200), nullable=True)

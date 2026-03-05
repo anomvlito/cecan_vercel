@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS journals (
     norm_eigenfactor    FLOAT,
 
     -- Rankings
-    quartile_rank           VARCHAR(5),
+    quartile_rank           VARCHAR(20),
     jif_percentile          FLOAT,
     category_ranking        VARCHAR(100),
     categories_code         VARCHAR(200),
@@ -72,3 +72,6 @@ CREATE TABLE IF NOT EXISTS publications (
     created_at  TIMESTAMP DEFAULT NOW(),
     updated_at  TIMESTAMP DEFAULT NOW()
 );
+
+-- Índice único para upsert por (issn, year)
+CREATE UNIQUE INDEX IF NOT EXISTS ix_journals_issn_year ON journals(issn, year) WHERE issn IS NOT NULL;
