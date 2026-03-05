@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   Search, Upload, ExternalLink, ChevronUp, ChevronDown,
-  Hash, CheckCircle, AlertTriangle, X, Loader2, Copy,
+  Hash, CheckCircle, AlertTriangle, X, Loader2, Copy, Trash2,
 } from 'lucide-vue-next'
 import { publicationsApi } from '@/services/api'
 import type { Publication, UploadResult, UploadJob } from '@/types/publication'
@@ -52,6 +52,24 @@ async function loadPublications(): Promise<void> {
     error.value = 'No se pudieron cargar las publicaciones'
   } finally {
     loading.value = false
+  }
+}
+
+// IDs de publicaciones en proceso de eliminación
+const deletingIds = ref(new Set<number>())
+
+async function deletePublication(id: number): Promise<void> {
+  if (deletingIds.value.has(id)) return
+  deletingIds.value = new Set(deletingIds.value).add(id)
+  try {
+    await publicationsApi.delete(id)
+    publications.value = publications.value.filter((p) => p.id !== id)
+  } catch {
+    // Si falla, simplemente se quita el spinner y la fila permanece
+  } finally {
+    const next = new Set(deletingIds.value)
+    next.delete(id)
+    deletingIds.value = next
   }
 }
 
@@ -598,12 +616,13 @@ function isValidDoi(doi: string): boolean {
               <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">
                 Estado
               </th>
+              <th class="w-10 px-2 py-3" />
             </tr>
           </thead>
 
           <tbody class="divide-y divide-gray-100">
             <tr v-if="filtered.length === 0">
-              <td colspan="7" class="px-4 py-16 text-center text-gray-400">
+              <td colspan="8" class="px-4 py-16 text-center text-gray-400">
                 <p class="font-medium">No se encontraron publicaciones</p>
                 <p class="text-sm mt-1">Arrastra un PDF o usa el botón "Subir PDF"</p>
               </td>
@@ -675,6 +694,17 @@ function isValidDoi(doi: string): boolean {
                 >
                   {{ statusLabel(pub.status) }}
                 </span>
+              </td>
+              <td class="px-2 py-3 text-right">
+                <button
+                  class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  :disabled="deletingIds.has(pub.id)"
+                  :title="`Eliminar publicación`"
+                  @click="deletePublication(pub.id)"
+                >
+                  <Loader2 v-if="deletingIds.has(pub.id)" class="w-4 h-4 animate-spin" />
+                  <Trash2 v-else class="w-4 h-4" />
+                </button>
               </td>
             </tr>
           </tbody>

@@ -222,6 +222,19 @@ async def enrich_with_doi(
     )
 
 
+@router.delete("/{publication_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_publication(
+    publication_id: int,
+    db: Session = Depends(get_db),
+) -> None:
+    """Elimina una publicación por ID."""
+    pub = db.query(Publication).filter(Publication.id == publication_id).first()
+    if not pub:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    db.delete(pub)
+    db.commit()
+
+
 @router.get("", response_model=list[PublicationRead])
 def list_publications(db: Session = Depends(get_db)) -> list[Publication]:
     """Lista todas las publicaciones ordenadas por fecha de creación."""

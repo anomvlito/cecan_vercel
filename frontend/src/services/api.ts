@@ -33,6 +33,10 @@ export const publicationsApi = {
     return data
   },
 
+  delete: async (publicationId: number): Promise<void> => {
+    await api.delete(`/publications/${publicationId}`)
+  },
+
   enrichWithDoi: async (publicationId: number, doi: string): Promise<UploadResult> => {
     const form = new FormData()
     form.append('doi', doi)
