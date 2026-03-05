@@ -1,5 +1,6 @@
 """Endpoint principal: upload de PDF con extracción de DOI y métricas JCR."""
 import json
+from typing import Optional
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
