@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from api.routes import publications, journals
+from api.routes import publications, journals, researchers, students, projects
 
 app = FastAPI(
     title="CECAN API",
@@ -27,6 +27,9 @@ app.add_middleware(
 
 app.include_router(publications.router, prefix="/api")
 app.include_router(journals.router, prefix="/api")
+app.include_router(researchers.router, prefix="/api")
+app.include_router(students.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
 
 
 @app.get("/health")

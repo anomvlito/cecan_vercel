@@ -69,6 +69,76 @@ export interface JournalListResponse {
   pages: number
 }
 
+export interface Researcher {
+  id: number
+  full_name: string
+  email: string | null
+  rut: string | null
+  institution: string | null
+  member_type: string | null
+  wp_id: number | null
+  is_active: boolean
+  created_at: string | null
+  orcid: string | null
+  first_name: string | null
+  last_name: string | null
+  category: string | null
+  citaciones_totales: number | null
+  indice_h: number | null
+  works_count: number | null
+  i10_index: number | null
+  url_foto: string | null
+  start_date: string | null
+  end_date: string | null
+}
+
+export interface Student {
+  id: number
+  full_name: string
+  email: string | null
+  rut: string | null
+  university: string | null
+  program: string | null
+  status: string
+  start_date: string | null
+  graduation_date: string | null
+  tutor_name: string | null
+  co_tutor_name: string | null
+  wp_id: number | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface ScientificProject {
+  id: number
+  title: string
+  code: string | null
+  work_package: string | null
+  grant_type: string | null
+  pi_id: number | null
+  pi_name: string | null
+  start_date: string | null
+  end_date: string | null
+  status: string | null
+  progress: number | null
+  budget_allocated: number | null
+  budget_executed: number | null
+  currency: string | null
+  years_covered: string | null
+  color: string | null
+  notes: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  limit: number
+  pages: number
+}
+
 export const QUARTILE_COLORS: Record<string, string> = {
   Q1: 'bg-green-100 text-green-800',
   Q2: 'bg-blue-100 text-blue-800',

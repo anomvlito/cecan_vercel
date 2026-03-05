@@ -1,5 +1,13 @@
 import axios from 'axios'
-import type { Publication, UploadResult, JournalListResponse } from '@/types/publication'
+import type {
+  Publication,
+  UploadResult,
+  JournalListResponse,
+  Researcher,
+  Student,
+  ScientificProject,
+  PaginatedResponse,
+} from '@/types/publication'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
@@ -67,6 +75,63 @@ export const journalsApi = {
     if (params.page) p.page = params.page
     if (params.limit) p.limit = params.limit
     const { data } = await api.get<JournalListResponse>('/journals', { params: p })
+    return data
+  },
+}
+
+export const researchersApi = {
+  search: async (params: {
+    q?: string
+    member_type?: string
+    is_active?: boolean
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<Researcher>> => {
+    const p: Record<string, string | number | boolean> = {}
+    if (params.q) p.q = params.q
+    if (params.member_type) p.member_type = params.member_type
+    if (params.is_active !== undefined) p.is_active = params.is_active
+    if (params.page) p.page = params.page
+    if (params.limit) p.limit = params.limit
+    const { data } = await api.get<PaginatedResponse<Researcher>>('/researchers', { params: p })
+    return data
+  },
+}
+
+export const studentsApi = {
+  search: async (params: {
+    q?: string
+    status?: string
+    program?: string
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<Student>> => {
+    const p: Record<string, string | number> = {}
+    if (params.q) p.q = params.q
+    if (params.status) p.status = params.status
+    if (params.program) p.program = params.program
+    if (params.page) p.page = params.page
+    if (params.limit) p.limit = params.limit
+    const { data } = await api.get<PaginatedResponse<Student>>('/students', { params: p })
+    return data
+  },
+}
+
+export const projectsApi = {
+  search: async (params: {
+    q?: string
+    status?: string
+    grant_type?: string
+    page?: number
+    limit?: number
+  }): Promise<PaginatedResponse<ScientificProject>> => {
+    const p: Record<string, string | number> = {}
+    if (params.q) p.q = params.q
+    if (params.status) p.status = params.status
+    if (params.grant_type) p.grant_type = params.grant_type
+    if (params.page) p.page = params.page
+    if (params.limit) p.limit = params.limit
+    const { data } = await api.get<PaginatedResponse<ScientificProject>>('/projects', { params: p })
     return data
   },
 }
