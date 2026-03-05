@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, Upload, ExternalLink, ChevronUp, ChevronDown } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import {
+  Search, Upload, ExternalLink, ChevronUp, ChevronDown,
+  Hash, CheckCircle, AlertTriangle, X, Loader2,
+} from 'lucide-vue-next'
 import { publicationsApi } from '@/services/api'
-import type { Publication } from '@/types/publication'
+import type { Publication, UploadResult, UploadJob } from '@/types/publication'
 import { QUARTILE_COLORS } from '@/types/publication'
+import ManualDoiModal from '@/components/publications/ManualDoiModal.vue'
 
-const router = useRouter()
-
-// --- Estado ---
+// ---------------------------------------------------------------------------
+// Estado general
+// ---------------------------------------------------------------------------
 const publications = ref<Publication[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -23,8 +26,20 @@ type SortKey = 'title' | 'year' | 'quartile_snapshot' | 'impact_factor_snapshot'
 const sortKey = ref<SortKey>('year')
 const sortAsc = ref(false)
 
-// --- Carga de datos ---
-onMounted(async () => {
+// Modal DOI manual
+const showDoiModal = ref(false)
+
+// ---------------------------------------------------------------------------
+// Upload jobs (drag & drop + notificaciones)
+// ---------------------------------------------------------------------------
+const jobs = ref<UploadJob[]>([])
+const isDragging = ref(false)
+let dragCounter = 0  // contador para evitar flicker en child elements
+
+// ---------------------------------------------------------------------------
+// Carga de datos
+// ---------------------------------------------------------------------------
+async function loadPublications(): Promise<void> {
   try {
     publications.value = await publicationsApi.getAll()
   } catch {
@@ -32,9 +47,129 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
 
-// --- Opciones de filtro dinámicas ---
+onMounted(loadPublications)
+
+// ---------------------------------------------------------------------------
+// Drag & drop handlers
+// ---------------------------------------------------------------------------
+function onDragEnter(e: DragEvent): void {
+  e.preventDefault()
+  dragCounter++
+  if (e.dataTransfer?.types.includes('Files')) isDragging.value = true
+}
+
+function onDragLeave(): void {
+  dragCounter--
+  if (dragCounter <= 0) {
+    dragCounter = 0
+    isDragging.value = false
+  }
+}
+
+function onDragOver(e: DragEvent): void {
+  e.preventDefault()
+}
+
+async function onDrop(e: DragEvent): Promise<void> {
+  e.preventDefault()
+  dragCounter = 0
+  isDragging.value = false
+
+  const files = Array.from(e.dataTransfer?.files ?? []).filter((f) =>
+    f.name.toLowerCase().endsWith('.pdf'),
+  )
+
+  if (files.length === 0) return
+
+  for (const file of files) {
+    startUpload(file)
+  }
+}
+
+async function startUpload(file: File, manualDoi?: string): Promise<void> {
+  const jobId = `${Date.now()}-${Math.random()}`
+  const job: UploadJob = {
+    id: String(jobId),
+    filename: file.name,
+    state: 'uploading',
+    result: null,
+    error: null,
+    manualDoi: '',
+    enriching: false,
+  }
+  ;(jobs.value as UploadJob[]).unshift(job)
+
+  try {
+    const result = await publicationsApi.uploadPdf(file, manualDoi)
+    updateJob(jobId, { state: 'success', result })
+    // Agregar nueva publicación al inicio de la lista
+    publications.value.unshift(result.publication)
+  } catch (err: unknown) {
+    const detail =
+      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      ?? 'Error al procesar el archivo'
+    updateJob(jobId, { state: 'error', error: detail })
+  }
+}
+
+function updateJob(id: string, patch: Partial<UploadJob>): void {
+  const idx = jobs.value.findIndex((j) => j.id === id)
+  if (idx !== -1) jobs.value[idx] = { ...jobs.value[idx], ...patch } as UploadJob
+}
+
+function dismissJob(id: string): void {
+  jobs.value = jobs.value.filter((j) => j.id !== id)
+}
+
+async function enrichJob(job: UploadJob): Promise<void> {
+  if (!job.result?.publication.id || !job.manualDoi.trim()) return
+  updateJob(job.id, { enriching: true })
+  try {
+    const updated = await publicationsApi.enrichWithDoi(
+      job.result.publication.id,
+      job.manualDoi.trim(),
+    )
+    updateJob(job.id, { result: updated, enriching: false })
+    // Actualizar publicación en la lista
+    const idx = publications.value.findIndex((p) => p.id === updated.publication.id)
+    if (idx !== -1) publications.value[idx] = updated.publication
+  } catch (err: unknown) {
+    const detail =
+      (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      ?? 'No se pudo enriquecer con ese DOI'
+    updateJob(job.id, { error: detail, enriching: false })
+  }
+}
+
+// File input para el botón "Subir PDF"
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+function triggerFileInput(): void {
+  fileInputRef.value?.click()
+}
+
+function onFileInputChange(e: Event): void {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? []).filter((f) =>
+    f.name.toLowerCase().endsWith('.pdf'),
+  )
+  files.forEach((f) => startUpload(f))
+  input.value = ''
+}
+
+// ---------------------------------------------------------------------------
+// Callback modal DOI
+// ---------------------------------------------------------------------------
+function onDoiModalDone(result: UploadResult): void {
+  publications.value.unshift(result.publication)
+  showDoiModal.value = false
+}
+
+// ---------------------------------------------------------------------------
+// Opciones de filtro dinámicas
+// ---------------------------------------------------------------------------
 const uniqueYears = computed(() => {
   const years = publications.value
     .map((p) => p.year)
@@ -42,7 +177,9 @@ const uniqueYears = computed(() => {
   return [...new Set(years)].sort((a, b) => b - a)
 })
 
-// --- Publicaciones filtradas y ordenadas ---
+// ---------------------------------------------------------------------------
+// Filtrado y sorting
+// ---------------------------------------------------------------------------
 const filtered = computed(() => {
   let list = publications.value
 
@@ -68,10 +205,9 @@ const filtered = computed(() => {
     }
   }
 
-  // Sort
   list = [...list].sort((a, b) => {
-    let aVal: string | number | null = null
-    let bVal: string | number | null = null
+    let aVal: string | number = ''
+    let bVal: string | number = ''
 
     if (sortKey.value === 'title') {
       aVal = a.title ?? ''
@@ -86,9 +222,6 @@ const filtered = computed(() => {
       aVal = a.impact_factor_snapshot ?? -1
       bVal = b.impact_factor_snapshot ?? -1
     }
-
-    if (aVal === null) aVal = ''
-    if (bVal === null) bVal = ''
 
     const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
     return sortAsc.value ? cmp : -cmp
@@ -106,7 +239,7 @@ function setSort(key: SortKey): void {
   }
 }
 
-function statusLabel(status: string): string {
+function statusLabel(s: string): string {
   const map: Record<string, string> = {
     uploaded: 'Subido',
     doi_extracted: 'DOI extraído',
@@ -114,10 +247,10 @@ function statusLabel(status: string): string {
     complete: 'Completo',
     failed: 'Error',
   }
-  return map[status] ?? status
+  return map[s] ?? s
 }
 
-function statusClass(status: string): string {
+function statusClass(s: string): string {
   const map: Record<string, string> = {
     uploaded: 'bg-gray-100 text-gray-600',
     doi_extracted: 'bg-blue-100 text-blue-700',
@@ -125,7 +258,7 @@ function statusClass(status: string): string {
     complete: 'bg-green-100 text-green-700',
     failed: 'bg-red-100 text-red-700',
   }
-  return map[status] ?? 'bg-gray-100 text-gray-600'
+  return map[s] ?? 'bg-gray-100 text-gray-600'
 }
 
 function resetFilters(): void {
@@ -133,10 +266,44 @@ function resetFilters(): void {
   yearFilter.value = ''
   quartileFilter.value = ''
 }
+
+const DOI_RE = /^10\.\d{4,9}\/[-._;()/:a-zA-Z0-9]+$/
+function isValidDoi(doi: string): boolean {
+  return DOI_RE.test(doi.trim())
+}
 </script>
 
 <template>
-  <div class="p-8">
+  <!-- Contenedor principal con drag zone -->
+  <div
+    class="relative p-8 min-h-full"
+    @dragenter="onDragEnter"
+    @dragleave="onDragLeave"
+    @dragover="onDragOver"
+    @drop="onDrop"
+  >
+    <!-- Overlay drag -->
+    <Transition name="fade">
+      <div
+        v-if="isDragging"
+        class="absolute inset-0 z-40 bg-blue-500/10 border-4 border-dashed border-blue-400 rounded-2xl flex flex-col items-center justify-center pointer-events-none"
+      >
+        <Upload class="w-14 h-14 text-blue-500 mb-3" />
+        <p class="text-xl font-semibold text-blue-700">Suelta el PDF para subirlo</p>
+        <p class="text-sm text-blue-500 mt-1">Se procesará automáticamente</p>
+      </div>
+    </Transition>
+
+    <!-- Input file oculto -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept=".pdf"
+      multiple
+      class="hidden"
+      @change="onFileInputChange"
+    />
+
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -145,18 +312,133 @@ function resetFilters(): void {
           {{ filtered.length }} de {{ publications.length }} publicaciones
         </p>
       </div>
-      <button
-        class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        @click="router.push('/upload')"
+      <div class="flex items-center gap-2">
+        <!-- Botón DOI manual -->
+        <button
+          class="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          @click="showDoiModal = true"
+        >
+          <Hash class="w-4 h-4" />
+          Ingresar DOI
+        </button>
+        <!-- Botón subir PDF -->
+        <button
+          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          @click="triggerFileInput"
+        >
+          <Upload class="w-4 h-4" />
+          Subir PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Notificaciones de upload jobs -->
+    <div v-if="jobs.length > 0" class="mb-4 space-y-2">
+      <div
+        v-for="job in jobs"
+        :key="job.id"
+        class="rounded-xl border px-4 py-3 flex items-start gap-3 text-sm"
+        :class="{
+          'bg-blue-50 border-blue-200': job.state === 'uploading',
+          'bg-green-50 border-green-200': job.state === 'success' && job.result?.journal_found,
+          'bg-yellow-50 border-yellow-200': job.state === 'success' && !job.result?.journal_found,
+          'bg-red-50 border-red-200': job.state === 'error',
+        }"
       >
-        <Upload class="w-4 h-4" />
-        Subir PDF
-      </button>
+        <!-- Icono de estado -->
+        <Loader2
+          v-if="job.state === 'uploading'"
+          class="w-4 h-4 text-blue-500 animate-spin flex-shrink-0 mt-0.5"
+        />
+        <CheckCircle
+          v-else-if="job.state === 'success' && job.result?.journal_found"
+          class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"
+        />
+        <AlertTriangle
+          v-else-if="job.state === 'success'"
+          class="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5"
+        />
+        <AlertTriangle
+          v-else
+          class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5"
+        />
+
+        <!-- Contenido -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-medium text-gray-800 truncate max-w-xs">{{ job.filename }}</span>
+            <!-- Métricas si enriquecido -->
+            <span
+              v-if="job.result?.publication.quartile_snapshot"
+              class="inline-flex px-1.5 py-0.5 rounded-full text-xs font-semibold"
+              :class="QUARTILE_COLORS[job.result.publication.quartile_snapshot] ?? 'bg-gray-100 text-gray-600'"
+            >
+              {{ job.result.publication.quartile_snapshot }}
+            </span>
+            <span
+              v-if="job.result?.publication.is_top10"
+              class="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700"
+            >
+              ★ Top 10%
+            </span>
+          </div>
+
+          <!-- Mensaje de estado -->
+          <p
+            v-if="job.state === 'uploading'"
+            class="text-xs text-blue-600 mt-0.5"
+          >
+            Procesando...
+          </p>
+          <p
+            v-else-if="job.result"
+            class="text-xs text-gray-500 mt-0.5"
+          >
+            {{ job.result.message }}
+          </p>
+          <p v-else-if="job.error" class="text-xs text-red-600 mt-0.5">{{ job.error }}</p>
+
+          <!-- Input DOI manual si no se encontró DOI -->
+          <div
+            v-if="job.state === 'success' && !job.result?.doi_found"
+            class="mt-2 flex items-center gap-2"
+          >
+            <input
+              v-model="job.manualDoi"
+              type="text"
+              placeholder="Ingresa el DOI manualmente: 10.xxxx/..."
+              class="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-yellow-400 font-mono bg-white"
+              @keyup.enter="enrichJob(job)"
+            />
+            <button
+              class="px-3 py-1 bg-yellow-500 text-white text-xs font-medium rounded-lg hover:bg-yellow-600 disabled:opacity-50 transition-colors flex items-center gap-1"
+              :disabled="!isValidDoi(job.manualDoi) || job.enriching"
+              @click="enrichJob(job)"
+            >
+              <Loader2 v-if="job.enriching" class="w-3 h-3 animate-spin" />
+              {{ job.enriching ? '' : 'Enriquecer' }}
+            </button>
+          </div>
+
+          <!-- Error del enriquecimiento -->
+          <p v-if="job.error && job.state === 'success'" class="text-xs text-red-500 mt-1">
+            {{ job.error }}
+          </p>
+        </div>
+
+        <!-- Botón cerrar -->
+        <button
+          v-if="job.state !== 'uploading'"
+          class="text-gray-400 hover:text-gray-600 flex-shrink-0"
+          @click="dismissJob(job.id)"
+        >
+          <X class="w-4 h-4" />
+        </button>
+      </div>
     </div>
 
     <!-- Filtros -->
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
-      <!-- Search -->
       <div class="relative flex-1 min-w-48">
         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
@@ -167,18 +449,14 @@ function resetFilters(): void {
         />
       </div>
 
-      <!-- Año -->
       <select
         v-model="yearFilter"
         class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
       >
         <option value="">Todos los años</option>
-        <option v-for="year in uniqueYears" :key="year" :value="String(year)">
-          {{ year }}
-        </option>
+        <option v-for="year in uniqueYears" :key="year" :value="String(year)">{{ year }}</option>
       </select>
 
-      <!-- Cuartil -->
       <select
         v-model="quartileFilter"
         class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -191,7 +469,6 @@ function resetFilters(): void {
         <option value="none">Sin cuartil</option>
       </select>
 
-      <!-- Reset -->
       <button
         v-if="searchTerm || yearFilter || quartileFilter"
         class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 underline"
@@ -217,25 +494,16 @@ function resetFilters(): void {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50">
-              <!-- Título -->
               <th
                 class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-700"
                 @click="setSort('title')"
               >
                 <span class="flex items-center gap-1">
                   Título
-                  <ChevronUp
-                    v-if="sortKey === 'title' && sortAsc"
-                    class="w-3 h-3"
-                  />
-                  <ChevronDown
-                    v-else-if="sortKey === 'title' && !sortAsc"
-                    class="w-3 h-3"
-                  />
+                  <ChevronUp v-if="sortKey === 'title' && sortAsc" class="w-3 h-3" />
+                  <ChevronDown v-else-if="sortKey === 'title' && !sortAsc" class="w-3 h-3" />
                 </span>
               </th>
-
-              <!-- Año -->
               <th
                 class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-700 w-20"
                 @click="setSort('year')"
@@ -246,15 +514,11 @@ function resetFilters(): void {
                   <ChevronDown v-else-if="sortKey === 'year' && !sortAsc" class="w-3 h-3" />
                 </span>
               </th>
-
-              <!-- Revista -->
               <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Revista
               </th>
-
-              <!-- Cuartil -->
               <th
-                class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-700 w-24"
+                class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-700 w-28"
                 @click="setSort('quartile_snapshot')"
               >
                 <span class="flex items-center gap-1">
@@ -263,8 +527,6 @@ function resetFilters(): void {
                   <ChevronDown v-else-if="sortKey === 'quartile_snapshot' && !sortAsc" class="w-3 h-3" />
                 </span>
               </th>
-
-              <!-- IF -->
               <th
                 class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-700 w-24"
                 @click="setSort('impact_factor_snapshot')"
@@ -275,13 +537,9 @@ function resetFilters(): void {
                   <ChevronDown v-else-if="sortKey === 'impact_factor_snapshot' && !sortAsc" class="w-3 h-3" />
                 </span>
               </th>
-
-              <!-- DOI -->
               <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">
                 DOI
               </th>
-
-              <!-- Estado -->
               <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">
                 Estado
               </th>
@@ -289,21 +547,18 @@ function resetFilters(): void {
           </thead>
 
           <tbody class="divide-y divide-gray-100">
-            <!-- Empty state -->
             <tr v-if="filtered.length === 0">
               <td colspan="7" class="px-4 py-16 text-center text-gray-400">
                 <p class="font-medium">No se encontraron publicaciones</p>
-                <p class="text-sm mt-1">Prueba ajustando los filtros o sube un PDF nuevo</p>
+                <p class="text-sm mt-1">Arrastra un PDF o usa el botón "Subir PDF"</p>
               </td>
             </tr>
 
-            <!-- Filas -->
             <tr
               v-for="pub in filtered"
               :key="pub.id"
               class="hover:bg-gray-50 transition-colors"
             >
-              <!-- Título -->
               <td class="px-4 py-3 max-w-xs">
                 <p class="font-medium text-gray-900 truncate" :title="pub.title ?? undefined">
                   {{ pub.title ?? '—' }}
@@ -312,13 +567,7 @@ function resetFilters(): void {
                   {{ pub.pdf_filename }}
                 </p>
               </td>
-
-              <!-- Año -->
-              <td class="px-4 py-3 text-gray-600">
-                {{ pub.year ?? '—' }}
-              </td>
-
-              <!-- Revista -->
+              <td class="px-4 py-3 text-gray-600">{{ pub.year ?? '—' }}</td>
               <td class="px-4 py-3 max-w-[200px]">
                 <p v-if="pub.journal" class="text-gray-700 truncate" :title="pub.journal.title">
                   {{ pub.journal.title }}
@@ -328,8 +577,6 @@ function resetFilters(): void {
                 </p>
                 <span v-else class="text-gray-300">—</span>
               </td>
-
-              <!-- Cuartil -->
               <td class="px-4 py-3">
                 <div class="flex flex-col gap-1">
                   <span
@@ -349,13 +596,9 @@ function resetFilters(): void {
                   </span>
                 </div>
               </td>
-
-              <!-- IF -->
               <td class="px-4 py-3 text-gray-700 tabular-nums">
                 {{ pub.impact_factor_snapshot !== null ? pub.impact_factor_snapshot.toFixed(3) : '—' }}
               </td>
-
-              <!-- DOI -->
               <td class="px-4 py-3">
                 <a
                   v-if="pub.doi"
@@ -370,8 +613,6 @@ function resetFilters(): void {
                 </a>
                 <span v-else class="text-gray-300">—</span>
               </td>
-
-              <!-- Estado -->
               <td class="px-4 py-3">
                 <span
                   class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium"
@@ -386,4 +627,22 @@ function resetFilters(): void {
       </div>
     </div>
   </div>
+
+  <!-- Modal DOI manual -->
+  <ManualDoiModal
+    v-if="showDoiModal"
+    @close="showDoiModal = false"
+    @done="onDoiModalDone"
+  />
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

@@ -51,6 +51,16 @@ export interface UploadResult {
 
 export type QuartileRank = 'Q1' | 'Q2' | 'Q3' | 'Q4'
 
+export interface UploadJob {
+  id: string
+  filename: string
+  state: 'uploading' | 'success' | 'error'
+  result: UploadResult | null
+  error: string | null
+  manualDoi: string
+  enriching: boolean
+}
+
 export const QUARTILE_COLORS: Record<string, string> = {
   Q1: 'bg-green-100 text-green-800',
   Q2: 'bg-blue-100 text-blue-800',
