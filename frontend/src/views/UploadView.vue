@@ -21,7 +21,8 @@
           :class="{
             'bg-blue-50 border-blue-200': job.state === 'uploading',
             'bg-green-50 border-green-200': job.state === 'success' && job.result?.journal_found,
-            'bg-yellow-50 border-yellow-200': job.state === 'success' && !job.result?.journal_found,
+            'bg-indigo-50 border-indigo-200': job.state === 'success' && job.result?.doi_found && !job.result?.journal_found,
+            'bg-yellow-50 border-yellow-200': job.state === 'success' && !job.result?.doi_found,
             'bg-red-50 border-red-200': job.state === 'error',
           }"
         >
@@ -33,6 +34,10 @@
           <CheckCircle
             v-else-if="job.state === 'success' && job.result?.journal_found"
             class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"
+          />
+          <Search
+            v-else-if="job.state === 'success' && job.result?.doi_found && !job.result?.journal_found"
+            class="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5"
           />
           <AlertTriangle
             v-else-if="job.state === 'success'"
@@ -70,6 +75,38 @@
             </p>
             <p v-else-if="job.error" class="text-xs text-red-600 mt-0.5">{{ job.error }}</p>
 
+            <!-- Auditoría: DOI encontrado pero revista no en JCR -->
+            <div
+              v-if="job.state === 'success' && job.result?.doi_found && !job.result?.journal_found"
+              class="mt-2 space-y-1.5"
+            >
+              <p class="text-xs text-indigo-700 font-medium">Revista no encontrada en la base JCR local</p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded truncate max-w-xs">
+                  {{ job.result.doi }}
+                </span>
+                <button
+                  class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  @click="copyDoi(job.result.doi!)"
+                >
+                  <Copy class="w-3 h-3" />
+                  Copiar DOI
+                </button>
+                <a
+                  :href="`https://doi.org/${job.result.doi}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                >
+                  <ExternalLink class="w-3 h-3" />
+                  Abrir en CrossRef
+                </a>
+              </div>
+              <p class="text-xs text-indigo-400">
+                Posibles causas: revista no indexada en JCR, ISSN no coincide, o fuera del período cubierto.
+              </p>
+            </div>
+
             <!-- Input DOI manual si no se encontró DOI -->
             <div
               v-if="job.state === 'success' && !job.result?.doi_found"
@@ -91,6 +128,11 @@
                 Aplicar
               </button>
             </div>
+
+            <!-- Error del enriquecimiento -->
+            <p v-if="job.error && job.state === 'success'" class="text-xs text-red-500 mt-1">
+              {{ job.error }}
+            </p>
           </div>
 
           <!-- Botón cerrar -->
@@ -109,13 +151,19 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Loader2, CheckCircle, AlertTriangle, X } from 'lucide-vue-next'
+import { Loader2, CheckCircle, AlertTriangle, X, Search, Copy, ExternalLink } from 'lucide-vue-next'
 import type { UploadJob, UploadResult } from '@/types/publication'
 import { QUARTILE_COLORS } from '@/types/publication'
 import { publicationsApi } from '@/services/api'
 import DropZone from '@/components/DropZone.vue'
 
 const jobs = ref<UploadJob[]>([])
+const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+function scheduleDismiss(id: string, delayMs: number): void {
+  const timer = setTimeout(() => dismissJob(id), delayMs)
+  dismissTimers.set(id, timer)
+}
 
 function onFilesSelected(files: File[]): void {
   files.forEach((file) => startUpload(file))
@@ -137,11 +185,13 @@ async function startUpload(file: File, manualDoi?: string): Promise<void> {
   try {
     const result = await publicationsApi.uploadPdf(file, manualDoi)
     updateJob(jobId, { state: 'success', result })
+    if (result.journal_found) scheduleDismiss(String(jobId), 4000)
   } catch (err: unknown) {
     const detail =
       (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
       ?? 'Error al procesar el archivo'
     updateJob(jobId, { state: 'error', error: detail })
+    scheduleDismiss(String(jobId), 5000)
   }
 }
 
@@ -151,7 +201,16 @@ function updateJob(id: string, patch: Partial<UploadJob>): void {
 }
 
 function dismissJob(id: string): void {
+  const timer = dismissTimers.get(id)
+  if (timer !== undefined) {
+    clearTimeout(timer)
+    dismissTimers.delete(id)
+  }
   jobs.value = jobs.value.filter((j) => j.id !== id)
+}
+
+async function copyDoi(doi: string): Promise<void> {
+  await navigator.clipboard.writeText(doi)
 }
 
 async function enrichJob(job: UploadJob): Promise<void> {
@@ -163,6 +222,8 @@ async function enrichJob(job: UploadJob): Promise<void> {
       job.manualDoi.trim(),
     )
     updateJob(job.id, { result: updated, enriching: false })
+    // Si ahora encuentra la revista, programar auto-dismiss
+    if (updated.journal_found) scheduleDismiss(job.id, 4000)
   } catch (err: unknown) {
     const detail =
       (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
