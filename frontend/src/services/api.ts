@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { UploadResult } from '@/types/publication'
+import type { Publication, UploadResult } from '@/types/publication'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
@@ -7,6 +7,11 @@ const api = axios.create({
 })
 
 export const publicationsApi = {
+  getAll: async (): Promise<Publication[]> => {
+    const { data } = await api.get<Publication[]>('/publications')
+    return data
+  },
+
   uploadPdf: async (file: File): Promise<UploadResult> => {
     const form = new FormData()
     form.append('file', file)

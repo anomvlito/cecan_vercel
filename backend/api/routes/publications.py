@@ -5,6 +5,8 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
+from sqlalchemy.orm import joinedload
+
 from database.session import get_db
 from core.models import Publication
 from core.schemas import JournalRead, UploadResult, PublicationRead
@@ -116,6 +118,17 @@ async def upload_pdf(
         journal_found=bool(journal),
         journal=journal_read,
         message=_build_message(doi, journal),
+    )
+
+
+@router.get("", response_model=list[PublicationRead])
+def list_publications(db: Session = Depends(get_db)) -> list[Publication]:
+    """Lista todas las publicaciones ordenadas por fecha de creación."""
+    return (
+        db.query(Publication)
+        .options(joinedload(Publication.journal))
+        .order_by(Publication.created_at.desc())
+        .all()
     )
 
 

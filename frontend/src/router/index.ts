@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import PublicationsView from '../views/PublicationsView.vue'
 import UploadView from '../views/UploadView.vue'
 
 const router = createRouter({
@@ -6,6 +7,15 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/publications',
+    },
+    {
+      path: '/publications',
+      name: 'publications',
+      component: PublicationsView,
+    },
+    {
+      path: '/upload',
       name: 'upload',
       component: UploadView,
     },
