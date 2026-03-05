@@ -27,6 +27,7 @@ export interface Publication {
   impact_factor_snapshot: number | null
   quartile_snapshot: string | null
   jif_percentile_snapshot: number | null
+  is_top10: boolean
   journal_issn_raw: string | null
   journal: Journal | null
 }

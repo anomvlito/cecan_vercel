@@ -1,8 +1,108 @@
-"""Busca revistas en la BD local (datos JCR)."""
+"""Busca revistas en la BD local (datos JCR) y deriva métricas de cuartil."""
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from core.models import Journal
+
+# ---------------------------------------------------------------------------
+# Helpers de cálculo de cuartil y top 10%
+# ---------------------------------------------------------------------------
+
+_VALID_QUARTILES = {"Q1", "Q2", "Q3", "Q4"}
+
+
+def derive_quartile(journal: Journal) -> Optional[str]:
+    """Devuelve Q1/Q2/Q3/Q4 a partir de los campos del journal.
+
+    Prioridad:
+    1. category_ranking si ya es "Q1"…"Q4" (el Excel JCR a veces lo guarda aquí)
+    2. quartile_rank si ya es "Q1"…"Q4"
+    3. Parsear ranking "X/Y" de quartile_rank (posición/total)
+    4. Parsear ranking "X/Y" de category_ranking
+    5. Derivar desde jif_percentile
+    """
+    # 1 y 2: campo ya contiene el cuartil directo
+    for raw in (journal.category_ranking, journal.quartile_rank):
+        if raw:
+            q = raw.strip().upper()
+            if q in _VALID_QUARTILES:
+                return q
+
+    # 3 y 4: parsear formato "X/Y"
+    for raw in (journal.quartile_rank, journal.category_ranking):
+        if raw and "/" in raw:
+            q = _quartile_from_ranking_str(raw)
+            if q:
+                return q
+
+    # 5: desde percentil JIF
+    if journal.jif_percentile is not None:
+        return _quartile_from_percentile(journal.jif_percentile)
+
+    return None
+
+
+def derive_percentile(journal: Journal) -> Optional[float]:
+    """Devuelve el percentil JIF (0–100) desde los campos del journal.
+
+    Prioridad:
+    1. jif_percentile (ya almacenado)
+    2. Calcular desde ranking "X/Y": percentile = (1 - X/Y) * 100
+    """
+    if journal.jif_percentile is not None:
+        return journal.jif_percentile
+
+    for raw in (journal.quartile_rank, journal.category_ranking):
+        if raw and "/" in raw:
+            p = _percentile_from_ranking_str(raw)
+            if p is not None:
+                return p
+
+    return None
+
+
+def _quartile_from_ranking_str(raw: str) -> Optional[str]:
+    try:
+        parts = raw.strip().split("/")
+        rank, total = int(parts[0]), int(parts[1])
+        if total <= 0:
+            return None
+        return _quartile_from_ratio(rank / total)
+    except (ValueError, IndexError, ZeroDivisionError):
+        return None
+
+
+def _percentile_from_ranking_str(raw: str) -> Optional[float]:
+    try:
+        parts = raw.strip().split("/")
+        rank, total = int(parts[0]), int(parts[1])
+        if total <= 0:
+            return None
+        return round((1 - rank / total) * 100, 2)
+    except (ValueError, IndexError, ZeroDivisionError):
+        return None
+
+
+def _quartile_from_ratio(ratio: float) -> str:
+    """Convierte posición relativa (0–1, menor = mejor) a cuartil."""
+    if ratio <= 0.25:
+        return "Q1"
+    if ratio <= 0.50:
+        return "Q2"
+    if ratio <= 0.75:
+        return "Q3"
+    return "Q4"
+
+
+def _quartile_from_percentile(pct: float) -> str:
+    """Convierte JIF percentile (mayor = mejor) a cuartil."""
+    if pct >= 75:
+        return "Q1"
+    if pct >= 50:
+        return "Q2"
+    if pct >= 25:
+        return "Q3"
+    return "Q4"
 
 
 def find_journal_by_issn(db: Session, issn: str) -> Optional[Journal]:

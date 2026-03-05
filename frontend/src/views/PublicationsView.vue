@@ -331,14 +331,23 @@ function resetFilters(): void {
 
               <!-- Cuartil -->
               <td class="px-4 py-3">
-                <span
-                  v-if="pub.quartile_snapshot"
-                  class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold"
-                  :class="QUARTILE_COLORS[pub.quartile_snapshot] ?? 'bg-gray-100 text-gray-600'"
-                >
-                  {{ pub.quartile_snapshot }}
-                </span>
-                <span v-else class="text-gray-300">—</span>
+                <div class="flex flex-col gap-1">
+                  <span
+                    v-if="pub.quartile_snapshot"
+                    class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold w-fit"
+                    :class="QUARTILE_COLORS[pub.quartile_snapshot] ?? 'bg-gray-100 text-gray-600'"
+                  >
+                    {{ pub.quartile_snapshot }}
+                  </span>
+                  <span v-else class="text-gray-300">—</span>
+                  <span
+                    v-if="pub.is_top10"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 w-fit"
+                    title="Top 10% — JIF Percentile ≥ 90"
+                  >
+                    ★ Top 10%
+                  </span>
+                </div>
               </td>
 
               <!-- IF -->

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class JournalRead(BaseModel):
@@ -44,6 +44,12 @@ class PublicationRead(BaseModel):
     quartile_snapshot: Optional[str] = None
     jif_percentile_snapshot: Optional[float] = None
     journal: Optional[JournalRead] = None
+
+    @computed_field
+    @property
+    def is_top10(self) -> bool:
+        """True si la revista está en el top 10% (JIF percentile ≥ 90)."""
+        return self.jif_percentile_snapshot is not None and self.jif_percentile_snapshot >= 90.0
 
 
 class UploadResult(BaseModel):

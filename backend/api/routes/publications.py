@@ -12,7 +12,12 @@ from core.models import Publication
 from core.schemas import JournalRead, UploadResult, PublicationRead
 from services.doi_extractor import extract_doi_from_pdf_bytes
 from services.openalex_service import fetch_work_by_doi
-from services.journal_service import find_journal_by_issn, find_journal_by_title
+from services.journal_service import (
+    find_journal_by_issn,
+    find_journal_by_title,
+    derive_quartile,
+    derive_percentile,
+)
 
 router = APIRouter(prefix="/publications", tags=["publications"])
 
@@ -93,8 +98,8 @@ async def upload_pdf(
             if journal:
                 pub.journal_id = journal.id
                 pub.impact_factor_snapshot = journal.impact_factor
-                pub.quartile_snapshot = journal.quartile_rank
-                pub.jif_percentile_snapshot = journal.jif_percentile
+                pub.quartile_snapshot = derive_quartile(journal)
+                pub.jif_percentile_snapshot = derive_percentile(journal)
                 pub.status = "enriched"
 
     try:
