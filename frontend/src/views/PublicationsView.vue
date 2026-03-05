@@ -469,6 +469,23 @@ function isValidDoi(doi: string): boolean {
             <p class="text-xs text-indigo-400">
               Posibles causas: revista no indexada en JCR, ISSN no coincide, o fuera del período cubierto.
             </p>
+            <div class="flex items-center gap-2 mt-1">
+              <input
+                v-model="job.manualDoi"
+                type="text"
+                placeholder="Probar con otro DOI: 10.xxxx/..."
+                class="flex-1 px-2 py-1 text-xs border border-indigo-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 font-mono bg-white"
+                @keyup.enter="enrichJob(job)"
+              />
+              <button
+                class="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors flex items-center gap-1"
+                :disabled="!isValidDoi(job.manualDoi) || job.enriching"
+                @click="enrichJob(job)"
+              >
+                <Loader2 v-if="job.enriching" class="w-3 h-3 animate-spin" />
+                {{ job.enriching ? '' : 'Reintentar' }}
+              </button>
+            </div>
           </div>
 
           <!-- Input DOI manual si no se encontró DOI -->
