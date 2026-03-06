@@ -17,6 +17,7 @@
   "dependencies": {
     "@types/three": "^0.183.1",
     "@vueuse/core": "^14.2.1",
+    "3d-force-graph": "^1.79.1",
     "axios": "^1.13.6",
     "lucide-vue-next": "^0.577.0",
     "pinia": "^3.0.4",
