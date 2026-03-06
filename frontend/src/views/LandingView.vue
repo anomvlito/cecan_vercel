@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   Upload, BookOpen, BookMarked, Users, GraduationCap,
   Network, GanttChartSquare, ClipboardList, Globe, FlaskConical,
-  ArrowRight,
+  ArrowRight, LogIn,
 } from 'lucide-vue-next'
 import { publicationsApi, researchersApi, projectsApi } from '@/services/api'
+
+const router = useRouter()
 
 const stats = ref({ publications: 0, researchers: 0, projects: 0 })
 
@@ -133,8 +135,8 @@ const sections = [
           Sube publicaciones, planifica proyectos, visualiza colaboraciones y accede a métricas JCR en un solo lugar.
         </p>
 
-        <!-- Stats -->
-        <div class="flex flex-wrap gap-6">
+        <!-- Stats + CTA -->
+        <div class="flex flex-wrap items-center gap-6">
           <div class="flex items-baseline gap-1.5">
             <span class="text-2xl font-bold text-gray-900">{{ stats.publications }}</span>
             <span class="text-sm text-gray-500">publicaciones</span>
@@ -149,6 +151,14 @@ const sections = [
             <span class="text-2xl font-bold text-gray-900">{{ stats.projects }}</span>
             <span class="text-sm text-gray-500">proyectos</span>
           </div>
+          <div class="w-px h-6 bg-gray-200 self-center hidden sm:block" />
+          <button
+            class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+            @click="router.push('/login')"
+          >
+            <LogIn class="w-4 h-4" />
+            Iniciar sesión
+          </button>
         </div>
       </div>
     </div>
@@ -158,11 +168,11 @@ const sections = [
       <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">Módulos disponibles</h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <RouterLink
+        <button
           v-for="s in sections"
           :key="s.to"
-          :to="s.to"
-          class="group bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col gap-3"
+          class="group bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col gap-3 text-left cursor-pointer"
+          @click="router.push('/login')"
         >
           <!-- Ícono -->
           <div class="flex items-center justify-between">
@@ -179,7 +189,7 @@ const sections = [
             <h3 class="text-sm font-semibold text-gray-900 mb-1">{{ s.label }}</h3>
             <p class="text-xs text-gray-500 leading-relaxed">{{ s.description }}</p>
           </div>
-        </RouterLink>
+        </button>
       </div>
     </div>
 

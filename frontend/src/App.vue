@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterView } from 'vue-router'
+import { ref, computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import { Menu } from 'lucide-vue-next'
 import Sidebar from '@/components/layout/Sidebar.vue'
 
+const route = useRoute()
 const sidebarOpen = ref(false)
+
+const isPublic = computed(() => !!route.meta.public)
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-gray-50">
+  <!-- Rutas públicas (landing, login): sin sidebar -->
+  <RouterView v-if="isPublic" />
+
+  <!-- Rutas autenticadas: layout con sidebar -->
+  <div v-else class="flex h-screen overflow-hidden bg-gray-50">
     <Sidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">

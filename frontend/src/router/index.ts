@@ -15,15 +15,16 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      name: 'home',
+      component: LandingView,
+      meta: { public: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: LoginView,
       meta: { public: true },
-    },
-    {
-      path: '/',
-      name: 'home',
-      component: LandingView,
     },
     {
       path: '/map',
@@ -71,6 +72,13 @@ const router = createRouter({
       component: MyTasksView,
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const token = localStorage.getItem('cecan_token')
+  if (!to.meta.public && !token) {
+    return { name: 'login' }
+  }
 })
 
 export default router
