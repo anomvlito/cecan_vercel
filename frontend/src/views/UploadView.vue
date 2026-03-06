@@ -10,10 +10,13 @@
       </div>
 
       <!-- Drop Zone -->
-      <DropZone @files-selected="onFilesSelected" />
+      <GuideLabel text="Arrastra un PDF o haz click para subirlo. Se extrae el DOI automáticamente y se busca la revista en JCR" position="bottom">
+        <DropZone @files-selected="onFilesSelected" />
+      </GuideLabel>
 
       <!-- Jobs -->
-      <div v-if="jobs.length > 0" class="mt-6 space-y-2">
+      <GuideLabel v-if="jobs.length > 0" text="Muestra el cuartil, factor de impacto y percentil JIF de la revista detectada en JCR" position="top">
+      <div class="mt-6 space-y-2">
         <div
           v-for="job in jobs"
           :key="job.id"
@@ -145,6 +148,7 @@
           </button>
         </div>
       </div>
+      </GuideLabel>
     </div>
   </div>
 </template>
@@ -156,6 +160,7 @@ import type { UploadJob, UploadResult } from '@/types/publication'
 import { QUARTILE_COLORS } from '@/types/publication'
 import { publicationsApi } from '@/services/api'
 import DropZone from '@/components/DropZone.vue'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
 
 const jobs = ref<UploadJob[]>([])
 const dismissTimers = new Map<string, ReturnType<typeof setTimeout>>()

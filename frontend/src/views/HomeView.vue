@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import api from '@/services/api'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MapPoint {
@@ -345,7 +346,9 @@ const hoveredClusterColor = computed(
     </div>
 
     <!-- Canvas 3D -->
-    <canvas ref="canvasRef" />
+    <GuideLabel text="Visualización 3D de publicaciones por cluster temático. Arrastra para rotar, scroll para zoom, click en cluster para filtrar" position="right">
+      <canvas ref="canvasRef" />
+    </GuideLabel>
 
     <!-- Título flotante -->
     <div class="absolute top-4 left-6 z-10 pointer-events-none">
@@ -379,23 +382,25 @@ const hoveredClusterColor = computed(
     </div>
 
     <!-- Zoom slider -->
-    <div class="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-1">
-      <p class="text-xs text-gray-600 tabular-nums">Zoom {{ zoomPct }}%</p>
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-700">−</span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          :value="zoomPct"
-          class="w-28 h-1 appearance-none rounded-full cursor-pointer"
-          style="accent-color: #60a5fa; background: rgba(255,255,255,0.1)"
-          @input="onZoomSlider"
-        />
-        <span class="text-xs text-gray-700">+</span>
+    <GuideLabel text="Ajusta el nivel de zoom del mapa 3D. También puedes usar el scroll del mouse" position="left">
+      <div class="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-1">
+        <p class="text-xs text-gray-600 tabular-nums">Zoom {{ zoomPct }}%</p>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-700">−</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            :value="zoomPct"
+            class="w-28 h-1 appearance-none rounded-full cursor-pointer"
+            style="accent-color: #60a5fa; background: rgba(255,255,255,0.1)"
+            @input="onZoomSlider"
+          />
+          <span class="text-xs text-gray-700">+</span>
+        </div>
+        <p class="text-xs text-gray-700">Arrastrar para rotar</p>
       </div>
-      <p class="text-xs text-gray-700">Arrastrar para rotar</p>
-    </div>
+    </GuideLabel>
 
     <!-- Tooltip hover -->
     <Transition name="tooltip">

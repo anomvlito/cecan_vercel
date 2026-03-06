@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Search, X, ChevronLeft, ChevronRight, Users, Loader2 } from 'lucide-vue-next'
 import { researchersApi } from '@/services/api'
 import type { Researcher } from '@/types/publication'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
 
 const searchInput = ref('')
 const searchCommitted = ref('')
@@ -103,26 +104,29 @@ const typeColors: Record<string, string> = {
             {{ total.toLocaleString('es-CL') }} miembros
           </span>
         </div>
-        <div class="relative flex-1 min-w-[200px] max-w-lg">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            v-model="searchInput"
-            type="text"
-            placeholder="Buscar por nombre, email o institución…"
-            class="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <button
-            v-if="searchInput"
-            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            @click="searchInput = ''; searchCommitted = ''; page = 1"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
+        <GuideLabel text="Busca investigadores por nombre, email o institución" position="bottom">
+          <div class="relative flex-1 min-w-[200px] max-w-lg">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              v-model="searchInput"
+              type="text"
+              placeholder="Buscar por nombre, email o institución…"
+              class="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              v-if="searchInput"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              @click="searchInput = ''; searchCommitted = ''; page = 1"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </GuideLabel>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs font-medium text-gray-500">Tipo</span>
+        <GuideLabel text="Filtra por tipo de miembro: Investigador o Staff" position="bottom">
         <button
           v-for="t in memberTypes"
           :key="t.key"
@@ -136,6 +140,7 @@ const typeColors: Record<string, string> = {
         >
           {{ t.label }}
         </button>
+        </GuideLabel>
         <button
           v-if="hasActiveFilters"
           class="ml-auto flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"

@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Search, X, ChevronLeft, ChevronRight, FolderOpen, Loader2 } from 'lucide-vue-next'
 import { projectsApi } from '@/services/api'
 import type { ScientificProject } from '@/types/publication'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
 
 const searchInput = ref('')
 const searchCommitted = ref('')
@@ -110,28 +111,34 @@ function fmtCurrency(val: number | null, currency: string | null): string {
             {{ total.toLocaleString('es-CL') }} proyectos
           </span>
         </div>
-        <div class="relative flex-1 min-w-[200px] max-w-lg">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            v-model="searchInput"
-            type="text"
-            placeholder="Buscar por título, código o investigador…"
-            class="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <button v-if="searchInput" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" @click="searchInput = ''; searchCommitted = ''; page = 1">
-            <X class="w-4 h-4" />
-          </button>
-        </div>
+        <GuideLabel text="Busca proyectos por nombre, código o investigador responsable" position="bottom">
+          <div class="relative flex-1 min-w-[200px] max-w-lg">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              v-model="searchInput"
+              type="text"
+              placeholder="Buscar por título, código o investigador…"
+              class="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button v-if="searchInput" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" @click="searchInput = ''; searchCommitted = ''; page = 1">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+        </GuideLabel>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs font-medium text-gray-500">Estado</span>
-        <button
-          v-for="s in statuses" :key="s"
-          class="px-3 py-1 text-xs font-semibold rounded-full border transition-all"
-          :class="selectedStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-500 hover:border-gray-400'"
-          @click="setStatus(s)"
-        >{{ s }}</button>
+        <GuideLabel text="Filtra proyectos por estado: Activo, Finalizado, En pausa o Pendiente" position="bottom">
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="s in statuses" :key="s"
+              class="px-3 py-1 text-xs font-semibold rounded-full border transition-all"
+              :class="selectedStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-500 hover:border-gray-400'"
+              @click="setStatus(s)"
+            >{{ s }}</button>
+          </div>
+        </GuideLabel>
         <button v-if="hasActiveFilters" class="ml-auto flex items-center gap-1 text-xs text-red-500 hover:text-red-700" @click="clearFilters">
           <X class="w-3 h-3" /> Limpiar
         </button>

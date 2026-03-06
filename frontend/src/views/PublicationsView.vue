@@ -8,6 +8,8 @@ import { publicationsApi } from '@/services/api'
 import type { Publication, UploadResult, UploadJob } from '@/types/publication'
 import { QUARTILE_COLORS } from '@/types/publication'
 import ManualDoiModal from '@/components/publications/ManualDoiModal.vue'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
+import AppTooltip from '@/components/ui/AppTooltip.vue'
 
 // ---------------------------------------------------------------------------
 // Estado general
@@ -529,15 +531,17 @@ function isValidDoi(doi: string): boolean {
 
     <!-- Filtros -->
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
-      <div class="relative flex-1 min-w-48">
-        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          v-model="searchTerm"
-          type="text"
-          placeholder="Buscar por título, DOI, revista..."
-          class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+      <GuideLabel text="Filtra publicaciones por título, DOI o nombre de revista" position="bottom">
+        <div class="relative flex-1 min-w-48">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            v-model="searchTerm"
+            type="text"
+            placeholder="Buscar por título, DOI, revista..."
+            class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </GuideLabel>
 
       <select
         v-model="yearFilter"
@@ -547,17 +551,19 @@ function isValidDoi(doi: string): boolean {
         <option v-for="year in uniqueYears" :key="year" :value="String(year)">{{ year }}</option>
       </select>
 
-      <select
-        v-model="quartileFilter"
-        class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-      >
-        <option value="">Todos los cuartiles</option>
-        <option value="Q1">Q1</option>
-        <option value="Q2">Q2</option>
-        <option value="Q3">Q3</option>
-        <option value="Q4">Q4</option>
-        <option value="none">Sin cuartil</option>
-      </select>
+      <GuideLabel text="Filtra publicaciones por cuartil JCR: Q1 (mejor), Q2, Q3 o Q4" position="bottom">
+        <select
+          v-model="quartileFilter"
+          class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Todos los cuartiles</option>
+          <option value="Q1">Q1</option>
+          <option value="Q2">Q2</option>
+          <option value="Q3">Q3</option>
+          <option value="Q4">Q4</option>
+          <option value="none">Sin cuartil</option>
+        </select>
+      </GuideLabel>
 
       <button
         v-if="searchTerm || yearFilter || quartileFilter"
@@ -579,7 +585,8 @@ function isValidDoi(doi: string): boolean {
     </div>
 
     <!-- Tabla -->
-    <div v-else class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <GuideLabel v-else text="Click en encabezado de columna para ordenar. Icono papelera para eliminar" position="top">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -713,21 +720,23 @@ function isValidDoi(doi: string): boolean {
                 </span>
               </td>
               <td class="px-2 py-3 text-right">
-                <button
-                  class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  :disabled="deletingIds.has(pub.id)"
-                  :title="`Eliminar publicación`"
-                  @click="deletePublication(pub.id)"
-                >
-                  <Loader2 v-if="deletingIds.has(pub.id)" class="w-4 h-4 animate-spin" />
-                  <Trash2 v-else class="w-4 h-4" />
-                </button>
+                <AppTooltip text="Eliminar publicación" position="left">
+                  <button
+                    class="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    :disabled="deletingIds.has(pub.id)"
+                    @click="deletePublication(pub.id)"
+                  >
+                    <Loader2 v-if="deletingIds.has(pub.id)" class="w-4 h-4 animate-spin" />
+                    <Trash2 v-else class="w-4 h-4" />
+                  </button>
+                </AppTooltip>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+    </GuideLabel>
   </div>
 
   <!-- Modal DOI manual -->

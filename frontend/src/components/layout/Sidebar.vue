@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe, Network, GanttChartSquare, ClipboardList } from 'lucide-vue-next'
+import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe, Network, GanttChartSquare, ClipboardList, HelpCircle } from 'lucide-vue-next'
+import { useGuideStore } from '@/stores/guide'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
 
 const route = useRoute()
+const guideStore = useGuideStore()
 
 const navItems = [
   { to: '/', icon: Globe, label: 'Mapa 3D' },
@@ -66,8 +68,19 @@ const navItems = [
     </nav>
 
     <!-- Footer -->
-    <div class="px-5 py-4 border-t border-gray-200">
-      <p class="text-xs text-gray-400">Plataforma CECAN</p>
+    <div class="px-3 py-4 border-t border-gray-200 space-y-2">
+      <button
+        class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+        :class="guideStore.active
+          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'"
+        @click="guideStore.toggle()"
+      >
+        <HelpCircle class="w-4 h-4 flex-shrink-0" />
+        {{ guideStore.active ? 'Desactivar leyendas' : 'Activar leyendas guía' }}
+        <span v-if="guideStore.active" class="ml-auto w-2 h-2 rounded-full bg-blue-500" />
+      </button>
+      <p class="text-xs text-gray-400 px-3">Plataforma CECAN</p>
     </div>
   </aside>
 </template>

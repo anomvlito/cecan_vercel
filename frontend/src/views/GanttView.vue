@@ -5,6 +5,8 @@ import type { ScientificProject, ProjectActivity, ResponsibilityAssignment } fro
 import DHMLXGantt from '@/components/projects/DHMLXGantt.vue'
 import ActivityStatusModal from '@/components/projects/ActivityStatusModal.vue'
 import ProjectsGantt from '@/components/projects/ProjectsGantt.vue'
+import GuideLabel from '@/components/ui/GuideLabel.vue'
+import AppTooltip from '@/components/ui/AppTooltip.vue'
 import {
   Plus, Trash2, Users, X, AlertCircle, BarChart2, List, Calendar,
   ChevronsDownUp, ChevronsUpDown,
@@ -228,32 +230,36 @@ const raciColors: Record<string, string> = {
       <h1 class="text-base font-bold text-gray-900 shrink-0">Planificación</h1>
 
       <!-- Tab switcher -->
-      <div class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
-        <button
-          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-          :class="activeTab === 'project' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-          @click="activeTab = 'project'"
-        >
-          <List class="w-3.5 h-3.5" /> Por proyecto
-        </button>
-        <button
-          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-          :class="activeTab === 'global' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-          @click="activeTab = 'global'"
-        >
-          <BarChart2 class="w-3.5 h-3.5" /> Vista global
-        </button>
-      </div>
+      <GuideLabel text="Cambia entre vista de proyecto individual y vista global de todos los proyectos" position="bottom">
+        <div class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+          <button
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+            :class="activeTab === 'project' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+            @click="activeTab = 'project'"
+          >
+            <List class="w-3.5 h-3.5" /> Por proyecto
+          </button>
+          <button
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+            :class="activeTab === 'global' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+            @click="activeTab = 'global'"
+          >
+            <BarChart2 class="w-3.5 h-3.5" /> Vista global
+          </button>
+        </div>
+      </GuideLabel>
 
       <!-- Project selector -->
       <template v-if="activeTab === 'project'">
-        <select
-          v-model="selectedProjectId"
-          class="flex-1 min-w-0 max-w-sm border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option :value="null">Seleccionar proyecto…</option>
-          <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
-        </select>
+        <GuideLabel text="Elige el proyecto para ver su Gantt interactivo con drag & drop y dependencias" position="bottom">
+          <select
+            v-model="selectedProjectId"
+            class="flex-1 min-w-0 max-w-sm border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option :value="null">Seleccionar proyecto…</option>
+            <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
+          </select>
+        </GuideLabel>
 
         <!-- Project date chip -->
         <div v-if="selectedProject?.start_date" class="flex items-center gap-1 text-xs text-gray-500 shrink-0">
@@ -265,54 +271,57 @@ const raciColors: Record<string, string> = {
       <!-- Botones Vista Global -->
       <template v-if="activeTab === 'global'">
         <div class="ml-auto flex items-center gap-1 shrink-0">
-          <button
-            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            title="Expandir todo"
-            @click="globalGanttRef?.expandAllProjects()"
-          >
-            <ChevronsUpDown class="w-3.5 h-3.5" />
-            Expandir
-          </button>
-          <button
-            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            title="Contraer todo"
-            @click="globalGanttRef?.collapseAllProjects()"
-          >
-            <ChevronsDownUp class="w-3.5 h-3.5" />
-            Contraer
-          </button>
+          <AppTooltip text="Expandir todos los proyectos" position="bottom">
+            <button
+              class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              @click="globalGanttRef?.expandAllProjects()"
+            >
+              <ChevronsUpDown class="w-3.5 h-3.5" />
+              Expandir
+            </button>
+          </AppTooltip>
+          <AppTooltip text="Contraer todos los proyectos" position="bottom">
+            <button
+              class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              @click="globalGanttRef?.collapseAllProjects()"
+            >
+              <ChevronsDownUp class="w-3.5 h-3.5" />
+              Contraer
+            </button>
+          </AppTooltip>
         </div>
       </template>
 
       <!-- Botones Gantt (solo en tab proyecto con proyecto seleccionado) -->
       <template v-if="activeTab === 'project' && selectedProjectId">
         <div class="ml-auto flex items-center gap-1 shrink-0">
-          <!-- Expandir todo -->
-          <button
-            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            title="Expandir todo"
-            @click="ganttRef?.expandAll()"
-          >
-            <ChevronsUpDown class="w-3.5 h-3.5" />
-            Expandir
-          </button>
-          <!-- Contraer todo -->
-          <button
-            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            title="Contraer todo"
-            @click="ganttRef?.collapseAll()"
-          >
-            <ChevronsDownUp class="w-3.5 h-3.5" />
-            Contraer
-          </button>
-          <!-- Nueva actividad -->
-          <button
-            class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
-            @click="showAddForm = !showAddForm"
-          >
-            <Plus class="w-3.5 h-3.5" />
-            Nueva actividad
-          </button>
+          <AppTooltip text="Expandir todas las tareas del Gantt" position="bottom">
+            <button
+              class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              @click="ganttRef?.expandAll()"
+            >
+              <ChevronsUpDown class="w-3.5 h-3.5" />
+              Expandir
+            </button>
+          </AppTooltip>
+          <AppTooltip text="Contraer todas las tareas al nivel superior" position="bottom">
+            <button
+              class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              @click="ganttRef?.collapseAll()"
+            >
+              <ChevronsDownUp class="w-3.5 h-3.5" />
+              Contraer
+            </button>
+          </AppTooltip>
+          <GuideLabel text="Agrega una nueva tarea al proyecto seleccionado" position="bottom">
+            <button
+              class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+              @click="showAddForm = !showAddForm"
+            >
+              <Plus class="w-3.5 h-3.5" />
+              Nueva actividad
+            </button>
+          </GuideLabel>
         </div>
       </template>
     </div>
@@ -464,12 +473,16 @@ const raciColors: Record<string, string> = {
 
                 <!-- Hover actions -->
                 <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <button class="p-1 text-gray-300 hover:text-purple-600 rounded" title="RACI" @click="openRaci(act)">
-                    <Users class="w-3 h-3" />
-                  </button>
-                  <button class="p-1 text-gray-300 hover:text-red-500 rounded" title="Eliminar" @click="deleteActivity(act.id)">
-                    <Trash2 class="w-3 h-3" />
-                  </button>
+                  <AppTooltip text="Ver responsables RACI" position="left">
+                    <button class="p-1 text-gray-300 hover:text-purple-600 rounded" @click="openRaci(act)">
+                      <Users class="w-3 h-3" />
+                    </button>
+                  </AppTooltip>
+                  <AppTooltip text="Eliminar actividad" position="left">
+                    <button class="p-1 text-gray-300 hover:text-red-500 rounded" @click="deleteActivity(act.id)">
+                      <Trash2 class="w-3 h-3" />
+                    </button>
+                  </AppTooltip>
                 </div>
               </div>
             </div>
@@ -519,9 +532,11 @@ const raciColors: Record<string, string> = {
               <h2 class="text-base font-semibold text-gray-900">Responsables RACI</h2>
               <p class="text-xs text-gray-500 mt-0.5 line-clamp-1">{{ raciActivityDesc }}</p>
             </div>
-            <button class="text-gray-400 hover:text-gray-600" @click="showRaciPanel = false">
-              <X class="w-5 h-5" />
-            </button>
+            <AppTooltip text="Cerrar" position="left">
+              <button class="text-gray-400 hover:text-gray-600" @click="showRaciPanel = false">
+                <X class="w-5 h-5" />
+              </button>
+            </AppTooltip>
           </div>
           <div class="p-5 space-y-4">
             <div v-if="responsibilities.length === 0" class="text-sm text-gray-400 text-center py-4">
