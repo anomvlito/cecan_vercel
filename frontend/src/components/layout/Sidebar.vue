@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe, Network, GanttChartSquare, ClipboardList, HelpCircle } from 'lucide-vue-next'
+import { Upload, FlaskConical, BookMarked, Users, GraduationCap, X, Network, GanttChartSquare, ClipboardList, BookOpen, HelpCircle } from 'lucide-vue-next'
 import { useGuideStore } from '@/stores/guide'
 
 defineProps<{ open: boolean }>()
@@ -10,16 +10,14 @@ const route = useRoute()
 const guideStore = useGuideStore()
 
 const navItems = [
-  { to: '/', icon: Globe, label: 'Mapa 3D' },
   { to: '/publications', icon: BookOpen, label: 'Publicaciones' },
-  { to: '/upload', icon: Upload, label: 'Subir PDF' },
-  { to: '/journals', icon: BookMarked, label: 'Revistas JCR' },
-  { to: '/researchers', icon: Users, label: 'Investigadores' },
-  { to: '/students', icon: GraduationCap, label: 'Estudiantes' },
-  { to: '/projects', icon: FolderOpen, label: 'Proyectos' },
-  { to: '/collaboration-map', icon: Network, label: 'Mapa Colaboración' },
-  { to: '/gantt', icon: GanttChartSquare, label: 'Planificación' },
-  { to: '/my-tasks', icon: ClipboardList, label: 'Mis Tareas' },
+  { to: '/upload',       icon: Upload,          label: 'Subir PDF' },
+  { to: '/journals',     icon: BookMarked,       label: 'Revistas JCR' },
+  { to: '/researchers',  icon: Users,            label: 'Investigadores' },
+  { to: '/students',     icon: GraduationCap,    label: 'Estudiantes' },
+  { to: '/collaboration-map', icon: Network,     label: 'Mapa Colaboración' },
+  { to: '/gantt',        icon: GanttChartSquare, label: 'Planificación' },
+  { to: '/my-tasks',     icon: ClipboardList,    label: 'Mis Tareas' },
 ]
 </script>
 
@@ -36,12 +34,12 @@ const navItems = [
     class="fixed md:static inset-y-0 left-0 z-30 w-56 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200"
     :class="open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
   >
-    <!-- Brand -->
+    <!-- Brand — enlace al inicio -->
     <div class="h-16 flex items-center justify-between px-5 border-b border-gray-200">
-      <div class="flex items-center gap-2">
+      <RouterLink to="/" class="flex items-center gap-2 hover:opacity-80 transition-opacity" @click="$emit('close')">
         <FlaskConical class="w-6 h-6 text-blue-600" />
         <span class="text-lg font-bold text-gray-900">CECAN</span>
-      </div>
+      </RouterLink>
       <!-- Botón cerrar en mobile -->
       <button class="md:hidden p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100" @click="$emit('close')">
         <X class="w-5 h-5" />
@@ -56,7 +54,7 @@ const navItems = [
         :to="item.to"
         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
         :class="
-          (item.to === '/' ? route.path === '/' : route.path.startsWith(item.to))
+          route.path.startsWith(item.to)
             ? 'bg-blue-50 text-blue-700'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         "

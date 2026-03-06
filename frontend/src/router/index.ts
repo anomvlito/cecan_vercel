@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LandingView from '../views/LandingView.vue'
 import HomeView from '../views/HomeView.vue'
 import PublicationsView from '../views/PublicationsView.vue'
 import UploadView from '../views/UploadView.vue'
 import JournalsView from '../views/JournalsView.vue'
 import ResearchersView from '../views/ResearchersView.vue'
 import StudentsView from '../views/StudentsView.vue'
-import ProjectsView from '../views/ProjectsView.vue'
 import CollaborationMapView from '../views/CollaborationMapView.vue'
 import GanttView from '../views/GanttView.vue'
 import MyTasksView from '../views/MyTasksView.vue'
@@ -16,6 +16,11 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
+      component: LandingView,
+    },
+    {
+      path: '/map',
+      name: 'map',
       component: HomeView,
     },
     {
@@ -42,11 +47,6 @@ const router = createRouter({
       path: '/students',
       name: 'students',
       component: StudentsView,
-    },
-    {
-      path: '/projects',
-      name: 'projects',
-      component: ProjectsView,
     },
     {
       path: '/collaboration-map',
