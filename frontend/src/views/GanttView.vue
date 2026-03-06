@@ -258,16 +258,23 @@ const selectedProject = computed(() =>
 <template>
   <div class="flex flex-col h-full bg-gray-50">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-      <div>
-        <h1 class="text-xl font-bold text-gray-900">Planificación Gantt</h1>
-        <p class="text-sm text-gray-500">Actividades y cronograma de proyectos</p>
+    <div class="bg-white border-b border-gray-200 px-6 py-3 space-y-2">
+      <div class="flex items-center justify-between">
+        <h1 class="text-lg font-bold text-gray-900">Planificación Gantt</h1>
+        <button
+          v-if="selectedProjectId"
+          class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          @click="openCreate"
+        >
+          <Plus class="w-4 h-4" />
+          Nueva actividad
+        </button>
       </div>
-      <div class="ml-auto flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <!-- Selector de proyecto -->
         <select
           v-model="selectedProjectId"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-64"
+          class="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 truncate"
         >
           <option :value="null">Seleccionar proyecto…</option>
           <option v-for="p in projects" :key="p.id" :value="p.id">
@@ -277,20 +284,12 @@ const selectedProject = computed(() =>
         <!-- View mode -->
         <select
           v-model="viewMode"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-28 flex-shrink-0 border border-gray-300 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="Month">Mes</option>
           <option value="Week">Semana</option>
           <option value="Day">Día</option>
         </select>
-        <button
-          v-if="selectedProjectId"
-          class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-          @click="openCreate"
-        >
-          <Plus class="w-4 h-4" />
-          Nueva actividad
-        </button>
       </div>
     </div>
 
