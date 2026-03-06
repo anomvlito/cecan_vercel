@@ -89,11 +89,43 @@ async function loadActivities() {
 
 watch(selectedProjectId, loadActivities)
 
-// ── Total months ──────────────────────────────────────────────────────────────
+// ── Total months (desde fechas del proyecto si están disponibles) ─────────────
 const totalMonths = computed(() => {
+  const proj = selectedProject.value
+  if (proj?.start_date && proj?.end_date) {
+    const s = new Date(proj.start_date + 'T00:00:00')
+    const e = new Date(proj.end_date + 'T00:00:00')
+    const months = (e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth() + 1
+    if (months > 0) return months
+  }
   if (!activities.value.length) return 12
-  return Math.max(...activities.value.map(a => a.end_month || 1), 12) + 1
+  return Math.max(...activities.value.map(a => a.end_month || 1), 12)
 })
+
+// ── Opciones de mes para el formulario (basadas en fecha inicio del proyecto) ─
+const monthOptions = computed(() => {
+  const proj = selectedProject.value
+  if (!proj?.start_date) {
+    return Array.from({ length: 60 }, (_, i) => ({ value: i + 1, label: `Mes ${i + 1}` }))
+  }
+  const start = new Date(proj.start_date + 'T00:00:00')
+  return Array.from({ length: totalMonths.value }, (_, i) => {
+    const d = new Date(start.getFullYear(), start.getMonth() + i)
+    const label = d.toLocaleDateString('es-CL', { month: 'short', year: 'numeric' })
+    return { value: i + 1, label: label.charAt(0).toUpperCase() + label.slice(1) }
+  })
+})
+
+// ── Función para mostrar rango de fechas real de una actividad ────────────────
+function activityDateRange(act: ProjectActivity): string {
+  if (act.start_date && act.end_date) {
+    const s = new Date(act.start_date + 'T00:00:00')
+    const e = new Date(act.end_date + 'T00:00:00')
+    const fmt = (d: Date) => d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: '2-digit' })
+    return `${fmt(s)} → ${fmt(e)}`
+  }
+  return `M${act.start_month} → M${act.end_month}`
+}
 
 // ── Add activity form ─────────────────────────────────────────────────────────
 const addForm = ref({
@@ -115,7 +147,7 @@ async function createActivity() {
       sort_order: activities.value.length,
     })
     activities.value = [...activities.value, created]
-    addForm.value = { description: '', start_month: 1, end_month: 1 }
+    addForm.value = { description: '', start_month: 1, end_month: addForm.value.start_month }
   } catch {
     error.value = 'Error al crear actividad'
   } finally {
@@ -324,7 +356,7 @@ const selectedProject = computed(() =>
                     >
                       {{ statusLabel[act.status] ?? act.status }}
                     </span>
-                    <span class="text-xs text-gray-400">M{{ act.start_month }}–M{{ act.end_month }}</span>
+                    <span class="text-xs text-gray-400">{{ activityDateRange(act) }}</span>
                     <span class="text-xs text-gray-400">{{ act.progress }}%</span>
                   </div>
                 </div>
@@ -369,6 +401,7 @@ const selectedProject = computed(() =>
               <MiniGantt
                 :activities="activities"
                 :total-months="totalMonths"
+                :project-start-date="selectedProject?.start_date"
                 @activity-click="openStatusModal"
               />
             </div>
@@ -384,29 +417,35 @@ const selectedProject = computed(() =>
                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   @keyup.enter="createActivity"
                 />
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center gap-2">
-                    <label class="text-xs text-gray-500 whitespace-nowrap">Mes inicio</label>
-                    <input
+                <div class="flex items-center gap-3 flex-wrap">
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <label class="text-xs text-gray-500 whitespace-nowrap">Inicio</label>
+                    <select
                       v-model.number="addForm.start_month"
-                      type="number"
-                      min="1"
-                      max="60"
-                      class="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      class="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option v-for="opt in monthOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                      </option>
+                    </select>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <label class="text-xs text-gray-500 whitespace-nowrap">Mes fin</label>
-                    <input
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <label class="text-xs text-gray-500 whitespace-nowrap">Fin</label>
+                    <select
                       v-model.number="addForm.end_month"
-                      type="number"
-                      min="1"
-                      max="60"
-                      class="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                      class="flex-1 min-w-0 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option
+                        v-for="opt in monthOptions.filter(o => o.value >= addForm.start_month)"
+                        :key="opt.value"
+                        :value="opt.value"
+                      >
+                        {{ opt.label }}
+                      </option>
+                    </select>
                   </div>
                   <button
-                    class="ml-auto flex items-center gap-1.5 bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    class="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     :disabled="saving || !addForm.description.trim()"
                     @click="createActivity"
                   >
@@ -414,6 +453,12 @@ const selectedProject = computed(() =>
                     {{ saving ? 'Guardando…' : 'Crear' }}
                   </button>
                 </div>
+                <p
+                  v-if="!selectedProject?.start_date"
+                  class="text-xs text-amber-600"
+                >
+                  ⚠ El proyecto no tiene fecha de inicio definida — los meses se muestran como M1, M2…
+                </p>
               </div>
             </div>
           </div>
