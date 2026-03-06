@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Menu } from 'lucide-vue-next'
+import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe } from 'lucide-vue-next'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
@@ -8,6 +8,7 @@ defineEmits<{ close: [] }>()
 const route = useRoute()
 
 const navItems = [
+  { to: '/', icon: Globe, label: 'Mapa 3D' },
   { to: '/publications', icon: BookOpen, label: 'Publicaciones' },
   { to: '/upload', icon: Upload, label: 'Subir PDF' },
   { to: '/journals', icon: BookMarked, label: 'Revistas JCR' },
@@ -50,7 +51,7 @@ const navItems = [
         :to="item.to"
         class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
         :class="
-          route.path === item.to
+          (item.to === '/' ? route.path === '/' : route.path.startsWith(item.to))
             ? 'bg-blue-50 text-blue-700'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         "
