@@ -6,6 +6,7 @@ import JournalsView from '../views/JournalsView.vue'
 import ResearchersView from '../views/ResearchersView.vue'
 import StudentsView from '../views/StudentsView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
+import CollaborationMapView from '../views/CollaborationMapView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,11 @@ const router = createRouter({
       path: '/projects',
       name: 'projects',
       component: ProjectsView,
+    },
+    {
+      path: '/collaboration-map',
+      name: 'collaboration-map',
+      component: CollaborationMapView,
     },
   ],
 })
