@@ -346,7 +346,7 @@ const hoveredClusterColor = computed(
     </div>
 
     <!-- Canvas 3D -->
-    <GuideLabel text="Visualización 3D de publicaciones por cluster temático. Arrastra para rotar, scroll para zoom, click en cluster para filtrar" position="right">
+    <GuideLabel text="Visualización 3D de publicaciones por cluster temático. Arrastra para rotar, scroll para zoom, click en cluster para filtrar" position="bottom">
       <canvas ref="canvasRef" />
     </GuideLabel>
 

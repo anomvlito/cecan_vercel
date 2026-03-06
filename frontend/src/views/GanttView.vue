@@ -251,7 +251,7 @@ const raciColors: Record<string, string> = {
 
       <!-- Project selector -->
       <template v-if="activeTab === 'project'">
-        <GuideLabel text="Elige el proyecto para ver su Gantt interactivo con drag & drop y dependencias" position="bottom">
+        <GuideLabel text="Elige el proyecto para ver su Gantt interactivo con drag & drop y dependencias" position="top">
           <select
             v-model="selectedProjectId"
             class="flex-1 min-w-0 max-w-sm border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -313,7 +313,7 @@ const raciColors: Record<string, string> = {
               Contraer
             </button>
           </AppTooltip>
-          <GuideLabel text="Agrega una nueva tarea al proyecto seleccionado" position="bottom">
+          <GuideLabel text="Agrega una nueva tarea al proyecto seleccionado" position="top">
             <button
               class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
               @click="showAddForm = !showAddForm"

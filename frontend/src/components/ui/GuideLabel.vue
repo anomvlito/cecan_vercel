@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { HelpCircle } from 'lucide-vue-next'
 import { useGuideStore } from '@/stores/guide'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = withDefaults(defineProps<{
   text: string
@@ -10,42 +11,75 @@ const props = withDefaults(defineProps<{
 })
 
 const guideStore = useGuideStore()
+const wrapperRef = ref<HTMLElement | null>(null)
+const style = ref<Record<string, string>>({})
+const GAP = 10
 
-const positionClasses: Record<string, string> = {
-  top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-  bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-  left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-  right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+function computePosition() {
+  if (!wrapperRef.value || !guideStore.active) return
+  const r = wrapperRef.value.getBoundingClientRect()
+
+  if (props.position === 'bottom') {
+    style.value = {
+      top: `${r.bottom + GAP}px`,
+      left: `${r.left + r.width / 2}px`,
+      transform: 'translateX(-50%)',
+    }
+  } else if (props.position === 'top') {
+    style.value = {
+      top: `${r.top - GAP}px`,
+      left: `${r.left + r.width / 2}px`,
+      transform: 'translate(-50%, -100%)',
+    }
+  } else if (props.position === 'left') {
+    style.value = {
+      top: `${r.top + r.height / 2}px`,
+      left: `${r.left - GAP}px`,
+      transform: 'translate(-100%, -50%)',
+    }
+  } else {
+    style.value = {
+      top: `${r.top + r.height / 2}px`,
+      left: `${r.right + GAP}px`,
+      transform: 'translateY(-50%)',
+    }
+  }
 }
 
-const arrowClasses: Record<string, string> = {
-  top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-blue-800',
-  bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-blue-800',
-  left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-blue-800',
-  right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-blue-800',
-}
+watch(() => guideStore.active, async (val) => {
+  if (val) { await nextTick(); computePosition() }
+})
+
+onMounted(() => {
+  window.addEventListener('scroll', computePosition, { passive: true, capture: true })
+  window.addEventListener('resize', computePosition, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', computePosition, true)
+  window.removeEventListener('resize', computePosition)
+})
 </script>
 
 <template>
-  <div class="relative inline-flex">
+  <div ref="wrapperRef" class="inline-flex">
     <slot />
+  </div>
+
+  <Teleport to="body">
     <Transition name="guide-fade">
       <div
         v-if="guideStore.active"
-        :class="['absolute z-50 pointer-events-none', positionClasses[props.position]]"
+        class="fixed z-[500] pointer-events-none"
+        :style="style"
       >
-        <!-- Flecha -->
-        <div
-          :class="['absolute w-0 h-0 border-4', arrowClasses[props.position]]"
-        />
-        <!-- Etiqueta -->
-        <div class="flex items-start gap-1.5 bg-blue-900/90 border border-blue-600 text-white text-xs rounded-lg px-2.5 py-2 shadow-lg backdrop-blur-sm max-w-[220px] whitespace-normal">
+        <div class="flex items-start gap-1.5 bg-blue-900/95 border border-blue-500 text-white text-xs rounded-lg px-2.5 py-2 shadow-xl backdrop-blur-sm max-w-[220px] whitespace-normal">
           <HelpCircle class="w-3.5 h-3.5 text-blue-300 flex-shrink-0 mt-px" />
           <span class="leading-snug">{{ props.text }}</span>
         </div>
       </div>
     </Transition>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

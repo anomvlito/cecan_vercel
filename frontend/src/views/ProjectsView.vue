@@ -129,7 +129,7 @@ function fmtCurrency(val: number | null, currency: string | null): string {
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs font-medium text-gray-500">Estado</span>
-        <GuideLabel text="Filtra proyectos por estado: Activo, Finalizado, En pausa o Pendiente" position="bottom">
+        <GuideLabel text="Filtra proyectos por estado: Activo, Finalizado, En pausa o Pendiente" position="top">
           <div class="flex flex-wrap gap-2">
             <button
               v-for="s in statuses" :key="s"

@@ -126,7 +126,7 @@ const typeColors: Record<string, string> = {
 
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-xs font-medium text-gray-500">Tipo</span>
-        <GuideLabel text="Filtra por tipo de miembro: Investigador o Staff" position="bottom">
+        <GuideLabel text="Filtra por tipo de miembro: Investigador o Staff" position="top">
         <button
           v-for="t in memberTypes"
           :key="t.key"

@@ -551,7 +551,7 @@ function isValidDoi(doi: string): boolean {
         <option v-for="year in uniqueYears" :key="year" :value="String(year)">{{ year }}</option>
       </select>
 
-      <GuideLabel text="Filtra publicaciones por cuartil JCR: Q1 (mejor), Q2, Q3 o Q4" position="bottom">
+      <GuideLabel text="Filtra publicaciones por cuartil JCR: Q1 (mejor), Q2, Q3 o Q4" position="top">
         <select
           v-model="quartileFilter"
           class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
