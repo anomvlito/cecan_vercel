@@ -101,7 +101,7 @@ function initScene() {
 
   camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 200)
 
-  camera.position.set(5, 8, 18)
+  camera.position.set(2, 3.2, 7.3)
 
   controls = new OrbitControls(camera, canvas)
   controls.enableDamping = true
