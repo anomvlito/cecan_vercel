@@ -74,8 +74,8 @@ async function fetchMap() {
 // ─── Three.js setup ───────────────────────────────────────────────────────────
 function initScene() {
   const canvas = canvasRef.value!
-  const w = canvas.clientWidth
-  const h = canvas.clientHeight
+  const w = canvas.offsetWidth || window.innerWidth
+  const h = canvas.offsetHeight || window.innerHeight
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -248,8 +248,8 @@ function onMouseMove(e: MouseEvent) {
 // ─── Resize ───────────────────────────────────────────────────────────────────
 function onResize() {
   const canvas = canvasRef.value!
-  const w = canvas.clientWidth
-  const h = canvas.clientHeight
+  const w = canvas.offsetWidth || window.innerWidth
+  const h = canvas.offsetHeight || window.innerHeight
   camera.aspect = w / h
   camera.updateProjectionMatrix()
   renderer.setSize(w, h, false)
@@ -300,7 +300,7 @@ const hoveredClusterColor = computed(
 </script>
 
 <template>
-  <div class="relative w-full h-full bg-[#06080f] overflow-hidden select-none">
+  <div class="relative w-full bg-[#06080f] overflow-hidden select-none" style="height: 100%">
 
     <!-- Loading -->
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center z-10">
@@ -311,7 +311,7 @@ const hoveredClusterColor = computed(
     </div>
 
     <!-- Canvas 3D -->
-    <canvas ref="canvasRef" class="w-full h-full block" />
+    <canvas ref="canvasRef" class="absolute inset-0 w-full h-full" />
 
     <!-- Título flotante -->
     <div class="absolute top-4 left-6 z-10 pointer-events-none">

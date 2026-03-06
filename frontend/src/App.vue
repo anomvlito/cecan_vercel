@@ -23,8 +23,8 @@ const sidebarOpen = ref(false)
         <span class="ml-3 text-base font-bold text-gray-900">CECAN</span>
       </div>
 
-      <main class="flex-1 overflow-y-auto">
-        <RouterView />
+      <main class="flex-1 overflow-hidden flex flex-col">
+        <RouterView class="flex-1 h-full overflow-y-auto" />
       </main>
     </div>
   </div>
