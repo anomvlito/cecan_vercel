@@ -37,6 +37,10 @@ const clusters = ref<Cluster[]>([])
 const hovered = ref<MapPoint | null>(null)
 const tooltipPos = ref({ x: 0, y: 0 })
 const visibleClusters = ref<Set<number>>(new Set())
+const zoomPct = ref(50) // 0 = más cerca, 100 = más lejos
+
+const MIN_DIST = 3
+const MAX_DIST = 40
 
 // Three.js objects
 let renderer: THREE.WebGLRenderer
@@ -102,8 +106,8 @@ function initScene() {
   controls = new OrbitControls(camera, canvas)
   controls.enableDamping = true
   controls.dampingFactor = 0.06
-  controls.minDistance = 3
-  controls.maxDistance = 40
+  controls.minDistance = MIN_DIST
+  controls.maxDistance = MAX_DIST
   controls.autoRotate = true
   controls.autoRotateSpeed = 0.4
 
@@ -213,6 +217,10 @@ function animate() {
   controls.update()
   if (starField) starField.rotation.y += 0.00015
 
+  // Sincronizar slider con distancia real de la cámara
+  const dist = camera.position.distanceTo(controls.target)
+  zoomPct.value = Math.round(100 - ((dist - MIN_DIST) / (MAX_DIST - MIN_DIST)) * 100)
+
   const t = Date.now() * 0.001
   pointObjects.forEach(({ mesh }, i) => {
     mesh.scale.setScalar(1 + Math.sin(t * 1.2 + i * 0.7) * 0.12)
@@ -265,6 +273,15 @@ function onResize() {
 }
 
 // ─── Toggle cluster visibility ────────────────────────────────────────────────
+function onZoomSlider(e: Event) {
+  const val = Number((e.target as HTMLInputElement).value)
+  // Convertir % → distancia (100% = más cerca, 0% = más lejos)
+  const dist = MAX_DIST - ((val / 100) * (MAX_DIST - MIN_DIST))
+  const dir = camera.position.clone().sub(controls.target).normalize()
+  camera.position.copy(controls.target.clone().add(dir.multiplyScalar(dist)))
+  controls.update()
+}
+
 function toggleCluster(id: number) {
   const next = new Set(visibleClusters.value)
   if (next.has(id)) {
@@ -361,9 +378,23 @@ const hoveredClusterColor = computed(
       </button>
     </div>
 
-    <!-- Hint controles -->
-    <div class="absolute bottom-6 right-6 z-10 text-right pointer-events-none">
-      <p class="text-xs text-gray-700">Arrastrar para rotar · Scroll para zoom</p>
+    <!-- Zoom slider -->
+    <div class="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-1">
+      <p class="text-xs text-gray-600 tabular-nums">Zoom {{ zoomPct }}%</p>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-700">−</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          :value="zoomPct"
+          class="w-28 h-1 appearance-none rounded-full cursor-pointer"
+          style="accent-color: #60a5fa; background: rgba(255,255,255,0.1)"
+          @input="onZoomSlider"
+        />
+        <span class="text-xs text-gray-700">+</span>
+      </div>
+      <p class="text-xs text-gray-700">Arrastrar para rotar</p>
     </div>
 
     <!-- Tooltip hover -->
