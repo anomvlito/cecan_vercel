@@ -172,6 +172,7 @@ export const projectActivitiesApi = {
     status: string
     progress: number
     budget_allocated: number | null
+    payment_status: string | null
     notes: string | null
     sort_order: number
   }>): Promise<ProjectActivity> => {
