@@ -1,5 +1,5 @@
 import './assets/main.css'
-import 'frappe-gantt/dist/frappe-gantt.css'
+import './assets/frappe-gantt.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
