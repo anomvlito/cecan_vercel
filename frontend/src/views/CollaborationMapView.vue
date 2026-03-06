@@ -180,6 +180,30 @@ function build2D() {
       ? ((allNodes.get(params.nodes[0] as string) as GraphNode | null)?.data as Record<string, unknown> ?? null)
       : null
   })
+
+  // Auto-fit al terminar la estabilización (evita que aparezca muy pequeño)
+  network.once('stabilized', () => {
+    network?.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } })
+  })
+}
+
+// ─── Datos 3D filtrados (compartido por build3D y toggle) ────────────────────
+function get3DGraphData() {
+  if (!rawData) return { nodes: [], links: [] }
+  const links = rawData.edges.map(e => ({
+    source: e['from'], target: e['to'],
+    color:  (e['color'] as Record<string, string> | undefined)?.color ?? '#334155',
+    width:  (e['width'] as number) ?? 1,
+  }))
+  if (showUnconnected.value) {
+    return { nodes: rawData.nodes.map(n => ({ ...n })), links }
+  }
+  const connected = new Set<unknown>()
+  rawData.edges.forEach(e => { connected.add(e['from']); connected.add(e['to']) })
+  return {
+    nodes: rawData.nodes.filter(n => connected.has(n['id'])).map(n => ({ ...n })),
+    links,
+  }
 }
 
 // ─── Build 3D ─────────────────────────────────────────────────────────────────
@@ -199,12 +223,6 @@ async function build3D() {
     return m[n['group'] as string] ?? '#888'
   }
 
-  const links = rawData.edges.map(e => ({
-    source: e['from'], target: e['to'],
-    color:  (e['color'] as Record<string, string> | undefined)?.color ?? '#334155',
-    width:  (e['width'] as number) ?? 1,
-  }))
-
   const w = containerRef.value.clientWidth
   const h = containerRef.value.clientHeight
 
@@ -213,7 +231,7 @@ async function build3D() {
     .backgroundColor(BG_3D)           // siempre fondo espacial, igual que HomeView
     .showNavInfo(false)
     .nodeLabel('')                     // tooltip gestionado por Vue
-    .graphData({ nodes: rawData.nodes.map(n => ({ ...n })), links })
+    .graphData(get3DGraphData())
     .nodeColor(nodeColorFn)
     .nodeVal((n: Record<string, unknown>) => Math.max(1, ((n['size'] as number) ?? 20) / 6))
     .linkColor((l: Record<string, unknown>) => l['color'] as string ?? '#334155')
@@ -337,15 +355,19 @@ function applyPhysics2D() {
 
 function toggleUnconnected() {
   showUnconnected.value = !showUnconnected.value
-  if (!allNodes || !allEdges) return
-  const connected = new Set<string>()
-  allEdges.get().forEach(e => {
-    if (e.from != null) connected.add(String(e.from))
-    if (e.to != null)   connected.add(String(e.to))
-  })
-  allNodes.update(allNodes.get().map((n: GraphNode) => ({
-    id: n.id, hidden: !showUnconnected.value && !connected.has(String(n.id)),
-  })))
+  if (view3D.value) {
+    graph3d?.graphData(get3DGraphData())
+  } else {
+    if (!allNodes || !allEdges) return
+    const connected = new Set<string>()
+    allEdges.get().forEach(e => {
+      if (e.from != null) connected.add(String(e.from))
+      if (e.to != null)   connected.add(String(e.to))
+    })
+    allNodes.update(allNodes.get().map((n: GraphNode) => ({
+      id: n.id, hidden: !showUnconnected.value && !connected.has(String(n.id)),
+    })))
+  }
 }
 
 // ─── 3D physics ───────────────────────────────────────────────────────────────
@@ -478,6 +500,13 @@ const legendItems = computed(() => ([
             <RefreshCw class="w-3 h-3" :class="autoRotate ? 'animate-spin' : ''" style="animation-duration:2.5s" />
             Rotar
           </button>
+          <button
+            class="px-2 py-1 text-xs rounded border transition-colors"
+            :class="showUnconnected
+              ? 'border-slate-600 text-slate-400 hover:border-slate-400'
+              : 'border-indigo-500 text-indigo-400'"
+            @click="toggleUnconnected"
+          >{{ showUnconnected ? 'Ocultar aislados' : 'Mostrar todos' }}</button>
         </template>
 
         <!-- Encuadrar -->
