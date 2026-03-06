@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import {
   Upload, BookOpen, BookMarked, Users, GraduationCap,
   Network, GanttChartSquare, ClipboardList, Globe, FlaskConical,
   ArrowRight, LogIn,
 } from 'lucide-vue-next'
 import { publicationsApi, researchersApi, projectsApi } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const stats = ref({ publications: 0, researchers: 0, projects: 0 })
 
@@ -25,7 +27,7 @@ onMounted(async () => {
       projects: proj.total ?? 0,
     }
   } catch {
-    // stats quedan en 0 si falla, no es crítico
+    // stats quedan en 0 si falla
   }
 })
 
@@ -33,7 +35,6 @@ const sections = [
   {
     to: '/upload',
     icon: Upload,
-    color: 'bg-blue-500',
     light: 'bg-blue-50',
     text: 'text-blue-600',
     label: 'Subir PDF',
@@ -42,7 +43,6 @@ const sections = [
   {
     to: '/publications',
     icon: BookOpen,
-    color: 'bg-indigo-500',
     light: 'bg-indigo-50',
     text: 'text-indigo-600',
     label: 'Publicaciones',
@@ -51,7 +51,6 @@ const sections = [
   {
     to: '/gantt',
     icon: GanttChartSquare,
-    color: 'bg-violet-500',
     light: 'bg-violet-50',
     text: 'text-violet-600',
     label: 'Planificación',
@@ -60,7 +59,6 @@ const sections = [
   {
     to: '/map',
     icon: Globe,
-    color: 'bg-cyan-500',
     light: 'bg-cyan-50',
     text: 'text-cyan-600',
     label: 'Mapa 3D',
@@ -69,7 +67,6 @@ const sections = [
   {
     to: '/researchers',
     icon: Users,
-    color: 'bg-emerald-500',
     light: 'bg-emerald-50',
     text: 'text-emerald-600',
     label: 'Investigadores',
@@ -78,7 +75,6 @@ const sections = [
   {
     to: '/students',
     icon: GraduationCap,
-    color: 'bg-amber-500',
     light: 'bg-amber-50',
     text: 'text-amber-600',
     label: 'Estudiantes',
@@ -87,7 +83,6 @@ const sections = [
   {
     to: '/journals',
     icon: BookMarked,
-    color: 'bg-rose-500',
     light: 'bg-rose-50',
     text: 'text-rose-600',
     label: 'Revistas JCR',
@@ -96,7 +91,6 @@ const sections = [
   {
     to: '/collaboration-map',
     icon: Network,
-    color: 'bg-orange-500',
     light: 'bg-orange-50',
     text: 'text-orange-600',
     label: 'Colaboración',
@@ -105,7 +99,6 @@ const sections = [
   {
     to: '/my-tasks',
     icon: ClipboardList,
-    color: 'bg-teal-500',
     light: 'bg-teal-50',
     text: 'text-teal-600',
     label: 'Mis Tareas',
@@ -135,7 +128,7 @@ const sections = [
           Sube publicaciones, planifica proyectos, visualiza colaboraciones y accede a métricas JCR en un solo lugar.
         </p>
 
-        <!-- Stats + CTA -->
+        <!-- Stats + CTA (solo si no está autenticado) -->
         <div class="flex flex-wrap items-center gap-6">
           <div class="flex items-baseline gap-1.5">
             <span class="text-2xl font-bold text-gray-900">{{ stats.publications }}</span>
@@ -151,14 +144,16 @@ const sections = [
             <span class="text-2xl font-bold text-gray-900">{{ stats.projects }}</span>
             <span class="text-sm text-gray-500">proyectos</span>
           </div>
-          <div class="w-px h-6 bg-gray-200 self-center hidden sm:block" />
-          <button
-            class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
-            @click="router.push('/login')"
-          >
-            <LogIn class="w-4 h-4" />
-            Iniciar sesión
-          </button>
+          <template v-if="!authStore.isAuthenticated">
+            <div class="w-px h-6 bg-gray-200 self-center hidden sm:block" />
+            <button
+              class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+              @click="router.push('/login')"
+            >
+              <LogIn class="w-4 h-4" />
+              Iniciar sesión
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -168,23 +163,40 @@ const sections = [
       <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">Módulos disponibles</h2>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <button
+        <!-- Autenticado: navegar directamente al módulo -->
+        <RouterLink
+          v-if="authStore.isAuthenticated"
           v-for="s in sections"
           :key="s.to"
-          class="group bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col gap-3 text-left cursor-pointer"
-          @click="router.push('/login')"
+          :to="s.to"
+          class="group bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col gap-3"
         >
-          <!-- Ícono -->
           <div class="flex items-center justify-between">
             <div :class="['w-10 h-10 rounded-xl flex items-center justify-center', s.light]">
               <component :is="s.icon" :class="['w-5 h-5', s.text]" />
             </div>
-            <ArrowRight
-              class="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all duration-200"
-            />
+            <ArrowRight class="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all duration-200" />
           </div>
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">{{ s.label }}</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">{{ s.description }}</p>
+          </div>
+        </RouterLink>
 
-          <!-- Texto -->
+        <!-- No autenticado: redirigir a login -->
+        <button
+          v-else
+          v-for="s in sections"
+          :key="s.to"
+          class="group bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-md transition-all duration-200 flex flex-col gap-3 text-left"
+          @click="router.push('/login')"
+        >
+          <div class="flex items-center justify-between">
+            <div :class="['w-10 h-10 rounded-xl flex items-center justify-center', s.light]">
+              <component :is="s.icon" :class="['w-5 h-5', s.text]" />
+            </div>
+            <ArrowRight class="w-4 h-4 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all duration-200" />
+          </div>
           <div>
             <h3 class="text-sm font-semibold text-gray-900 mb-1">{{ s.label }}</h3>
             <p class="text-xs text-gray-500 leading-relaxed">{{ s.description }}</p>

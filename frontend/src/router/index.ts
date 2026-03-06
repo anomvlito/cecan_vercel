@@ -76,8 +76,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('cecan_token')
+  // Ruta protegida sin sesión → login
   if (!to.meta.public && !token) {
     return { name: 'login' }
+  }
+  // Ya autenticado intenta entrar a login → landing
+  if (to.name === 'login' && token) {
+    return { name: 'home' }
   }
 })
 

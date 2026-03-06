@@ -3,16 +3,22 @@ import { ref, computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { Menu } from 'lucide-vue-next'
 import Sidebar from '@/components/layout/Sidebar.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 
-const isPublic = computed(() => !!route.meta.public)
+// Solo /login no tiene layout. Landing sin sesión tampoco.
+// Cualquier otra combinación (authenticated + cualquier ruta) muestra el sidebar.
+const showLayout = computed(
+  () => authStore.isAuthenticated && route.name !== 'login',
+)
 </script>
 
 <template>
-  <!-- Rutas públicas (landing, login): sin sidebar -->
-  <RouterView v-if="isPublic" />
+  <!-- Login o landing sin sesión: pantalla completa sin sidebar -->
+  <RouterView v-if="!showLayout" />
 
   <!-- Rutas autenticadas: layout con sidebar -->
   <div v-else class="flex h-screen overflow-hidden bg-gray-50">
