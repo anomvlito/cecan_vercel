@@ -314,7 +314,7 @@ function isValidDoi(doi: string): boolean {
 <template>
   <!-- Contenedor principal con drag zone -->
   <div
-    class="relative p-8 min-h-full"
+    class="relative p-4 sm:p-6 min-h-full"
     @dragenter="onDragEnter"
     @dragleave="onDragLeave"
     @dragover="onDragOver"
@@ -343,29 +343,31 @@ function isValidDoi(doi: string): boolean {
     />
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Publicaciones</h1>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Publicaciones</h1>
         <p class="text-sm text-gray-500 mt-0.5">
           {{ filtered.length }} de {{ publications.length }} publicaciones
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-shrink-0">
         <!-- Botón DOI manual -->
         <button
-          class="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          class="flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
           @click="showDoiModal = true"
         >
           <Hash class="w-4 h-4" />
-          Ingresar DOI
+          <span class="hidden sm:inline">Ingresar DOI</span>
+          <span class="sm:hidden">DOI</span>
         </button>
         <!-- Botón subir PDF -->
         <button
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          class="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           @click="triggerFileInput"
         >
           <Upload class="w-4 h-4" />
-          Subir PDF
+          <span class="hidden sm:inline">Subir PDF</span>
+          <span class="sm:hidden">Subir</span>
         </button>
       </div>
     </div>
@@ -532,7 +534,7 @@ function isValidDoi(doi: string): boolean {
     <!-- Filtros -->
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-wrap gap-3 items-center">
       <GuideLabel text="Filtra publicaciones por título, DOI o nombre de revista" position="bottom">
-        <div class="relative flex-1 min-w-48">
+        <div class="relative flex-1 min-w-0">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             v-model="searchTerm"

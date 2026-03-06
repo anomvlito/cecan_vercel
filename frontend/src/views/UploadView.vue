@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-12 px-4">
+  <div class="min-h-screen bg-gray-50 py-8 sm:py-12 px-4">
     <div class="max-w-3xl mx-auto">
       <!-- Header -->
-      <div class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-gray-900">Subir Publicación</h1>
+      <div class="mb-6 sm:mb-8 text-center">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Subir Publicación</h1>
         <p class="mt-2 text-gray-500">
           Sube uno o varios PDFs y extraeremos automáticamente el DOI y las métricas JCR.
         </p>

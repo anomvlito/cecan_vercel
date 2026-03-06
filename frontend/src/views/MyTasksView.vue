@@ -109,13 +109,13 @@ function formatDate(d: string | null) {
 <template>
   <div class="flex flex-col h-full bg-gray-50">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
       <h1 class="text-xl font-bold text-gray-900">Mis Tareas RACI</h1>
       <p class="text-sm text-gray-500">Actividades asignadas a investigadores por rol RACI</p>
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-4 gap-4 px-6 py-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 sm:px-6 py-4">
       <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
         <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
           <Filter class="w-5 h-5 text-gray-500" />
@@ -155,57 +155,59 @@ function formatDate(d: string | null) {
     </div>
 
     <!-- Filtros -->
-    <div class="bg-white border-y border-gray-200 px-6 py-3 flex items-center gap-3 flex-wrap">
-      <span class="text-sm font-medium text-gray-500 mr-1">Filtros:</span>
+    <div class="bg-white border-y border-gray-200 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 sm:flex-wrap">
+      <span class="text-sm font-medium text-gray-500 hidden sm:inline">Filtros:</span>
 
-      <!-- Miembro -->
-      <select
-        v-model="filterMemberId"
-        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        @change="applyMemberFilter"
-      >
-        <option :value="null">Todos los miembros</option>
-        <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
-      </select>
+      <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <!-- Miembro -->
+        <select
+          v-model="filterMemberId"
+          class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          @change="applyMemberFilter"
+        >
+          <option :value="null">Todos los miembros</option>
+          <option v-for="m in members" :key="m.id" :value="m.id">{{ m.full_name }}</option>
+        </select>
 
-      <!-- Rol RACI -->
-      <select
-        v-model="filterRole"
-        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Todos los roles</option>
-        <option value="R">R — Responsible</option>
-        <option value="A">A — Accountable</option>
-        <option value="C">C — Consulted</option>
-        <option value="I">I — Informed</option>
-      </select>
+        <!-- Rol RACI -->
+        <select
+          v-model="filterRole"
+          class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Todos los roles</option>
+          <option value="R">R — Responsible</option>
+          <option value="A">A — Accountable</option>
+          <option value="C">C — Consulted</option>
+          <option value="I">I — Informed</option>
+        </select>
 
-      <!-- Estado -->
-      <select
-        v-model="filterStatus"
-        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Todos los estados</option>
-        <option value="pending">Pendiente</option>
-        <option value="in_progress">En curso</option>
-        <option value="done">Terminada</option>
-        <option value="blocked">Bloqueada</option>
-      </select>
+        <!-- Estado -->
+        <select
+          v-model="filterStatus"
+          class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Todos los estados</option>
+          <option value="pending">Pendiente</option>
+          <option value="in_progress">En curso</option>
+          <option value="done">Terminada</option>
+          <option value="blocked">Bloqueada</option>
+        </select>
 
-      <!-- Vencidas -->
-      <select
-        v-model="filterOverdue"
-        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option :value="null">Con y sin retraso</option>
-        <option :value="true">Solo vencidas</option>
-        <option :value="false">Solo vigentes</option>
-      </select>
+        <!-- Vencidas -->
+        <select
+          v-model="filterOverdue"
+          class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option :value="null">Con y sin retraso</option>
+          <option :value="true">Solo vencidas</option>
+          <option :value="false">Solo vigentes</option>
+        </select>
+      </div>
 
       <!-- Reset -->
       <button
         v-if="filterRole || filterStatus || filterOverdue !== null || filterMemberId"
-        class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 ml-auto"
+        class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 sm:ml-auto"
         @click="filterRole = ''; filterStatus = ''; filterOverdue = null; filterMemberId = null; applyMemberFilter()"
       >
         <X class="w-3.5 h-3.5" />
@@ -233,7 +235,7 @@ function formatDate(d: string | null) {
     </div>
 
     <!-- Tabla agrupada por proyecto -->
-    <div v-else class="flex-1 overflow-auto px-6 py-4 space-y-6">
+    <div v-else class="flex-1 overflow-auto px-4 sm:px-6 py-4 space-y-6">
       <div
         v-for="group in grouped"
         :key="group.projectId"
@@ -247,7 +249,8 @@ function formatDate(d: string | null) {
         </div>
 
         <!-- Actividades -->
-        <table class="w-full text-sm">
+        <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[640px]">
           <thead>
             <tr class="border-b border-gray-100 text-xs text-gray-500">
               <th class="text-left px-4 py-2 font-medium">Actividad</th>
@@ -310,6 +313,7 @@ function formatDate(d: string | null) {
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>

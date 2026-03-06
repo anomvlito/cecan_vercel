@@ -9,11 +9,12 @@ import GuideLabel from '@/components/ui/GuideLabel.vue'
 import AppTooltip from '@/components/ui/AppTooltip.vue'
 import {
   Plus, Trash2, Users, X, AlertCircle, BarChart2, List, Calendar,
-  ChevronsDownUp, ChevronsUpDown,
+  ChevronsDownUp, ChevronsUpDown, PanelLeftOpen,
 } from 'lucide-vue-next'
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const activeTab = ref<'project' | 'global'>('project')
+const showSidePanel = ref(false)  // mobile: panel lateral oculto por defecto
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const projects      = ref<ScientificProject[]>([])
@@ -295,6 +296,16 @@ const raciColors: Record<string, string> = {
       <!-- Botones Gantt (solo en tab proyecto con proyecto seleccionado) -->
       <template v-if="activeTab === 'project' && selectedProjectId">
         <div class="ml-auto flex items-center gap-1 shrink-0">
+          <!-- Toggle panel en mobile -->
+          <AppTooltip text="Mostrar actividades" position="bottom">
+            <button
+              class="md:hidden flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              :class="showSidePanel ? 'bg-blue-50 text-blue-600' : ''"
+              @click="showSidePanel = !showSidePanel"
+            >
+              <PanelLeftOpen class="w-3.5 h-3.5" />
+            </button>
+          </AppTooltip>
           <AppTooltip text="Expandir todas las tareas del Gantt" position="bottom">
             <button
               class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -413,10 +424,16 @@ const raciColors: Record<string, string> = {
         </div>
       </div>
 
-      <div v-else class="flex flex-1 min-h-0">
+      <div v-else class="flex flex-1 min-h-0 relative">
 
         <!-- ── LEFT: lista de actividades ──────────────────────────────────── -->
-        <div class="w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        <!-- En mobile: drawer deslizante. En desktop: siempre visible -->
+        <div
+          class="bg-white border-r border-gray-200 flex flex-col shrink-0 transition-all duration-200"
+          :class="showSidePanel
+            ? 'absolute inset-y-0 left-0 z-10 w-72 shadow-xl md:relative md:shadow-none'
+            : 'hidden md:flex md:w-72'"
+        >
           <!-- Header lista -->
           <div class="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
             <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">

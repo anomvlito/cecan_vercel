@@ -157,18 +157,18 @@ const quartileOptions = ['Q1', 'Q2', 'Q3', 'Q4']
     <!-- ------------------------------------------------------------------ -->
     <!-- Header + buscador -->
     <!-- ------------------------------------------------------------------ -->
-    <div class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
-      <div class="flex items-center justify-between gap-4 mb-4">
-        <div class="flex items-center gap-2">
+    <div class="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-10">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div class="flex items-center gap-2 flex-shrink-0">
           <BookMarked class="w-5 h-5 text-blue-600" />
           <h1 class="text-xl font-bold text-gray-900">Revistas JCR</h1>
-          <span v-if="!loading" class="ml-2 text-sm text-gray-400">
-            {{ total.toLocaleString('es-CL') }} revistas
+          <span v-if="!loading" class="ml-1 text-sm text-gray-400">
+            {{ total.toLocaleString('es-CL') }}
           </span>
         </div>
 
         <!-- Buscador -->
-        <div class="relative flex-1 max-w-lg">
+        <div class="relative flex-1 min-w-0">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <input
             v-model="searchInput"
@@ -187,9 +187,9 @@ const quartileOptions = ['Q1', 'Q2', 'Q3', 'Q4']
       </div>
 
       <!-- Filtros -->
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <!-- Cuartil -->
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1 sm:gap-1.5">
           <span class="text-xs font-medium text-gray-500 mr-1">Cuartil</span>
           <button
             v-for="q in quartileOptions"
@@ -206,10 +206,10 @@ const quartileOptions = ['Q1', 'Q2', 'Q3', 'Q4']
           </button>
         </div>
 
-        <div class="w-px h-5 bg-gray-200" />
+        <div class="w-px h-5 bg-gray-200 hidden sm:block" />
 
         <!-- Percentil -->
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1 sm:gap-1.5">
           <span class="text-xs font-medium text-gray-500 mr-1">JIF Percentil</span>
           <button
             v-for="preset in pctPresets"

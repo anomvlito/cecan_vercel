@@ -61,7 +61,7 @@ const navItems = [
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
-        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
         :class="
           route.path.startsWith(item.to)
             ? 'bg-blue-50 text-blue-700'
@@ -69,7 +69,7 @@ const navItems = [
         "
         @click="$emit('close')"
       >
-        <component :is="item.icon" class="w-4 h-4 flex-shrink-0" />
+        <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
         {{ item.label }}
       </RouterLink>
     </nav>
