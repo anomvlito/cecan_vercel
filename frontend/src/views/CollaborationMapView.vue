@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import * as THREE from 'three'
 import { Network, type Node, type Edge } from 'vis-network'
 import { DataSet } from 'vis-data'
 import {
@@ -14,28 +15,32 @@ type GraphEdge = Edge
 interface Stats { researchers: number; wps: number; projects: number; nodes_thematic: number; edges: number }
 
 // ─── State ────────────────────────────────────────────────────────────────────
-const containerRef  = ref<HTMLDivElement | null>(null)
-const loading       = ref(true)
-const error         = ref<string | null>(null)
-const stats         = ref<Stats | null>(null)
-const selected      = ref<Record<string, unknown> | null>(null)
-const darkMode      = ref(true)
-const view3D        = ref(false)
+const containerRef = ref<HTMLDivElement | null>(null)
+const loading      = ref(true)
+const error        = ref<string | null>(null)
+const stats        = ref<Stats | null>(null)
+const selected     = ref<Record<string, unknown> | null>(null)
+const darkMode     = ref(true)
+const view3D       = ref(false)
 
-// Tooltip hover
+// Tooltip
 const tooltipNode = ref<Record<string, unknown> | null>(null)
 const tipX = ref(0)
 const tipY = ref(0)
 
 // 2D controls
-const gravity      = ref(-800)
-const springLength = ref(180)
-const showUnconnected = ref(true)
+const gravity         = ref(-800)
+const springLength    = ref(180)
+const showUnconnected = ref(false)   // ← apagado por defecto
 
 // 3D controls
 const linkDist3D   = ref(150)
 const charge3D     = ref(-300)
-const autoRotate   = ref(false)
+const autoRotate   = ref(true)       // ← encendido por defecto en 3D
+const zoomPct3D    = ref(60)
+
+const MIN_3D = 50
+const MAX_3D = 2000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let network:  Network | null = null
@@ -49,48 +54,48 @@ let rawData:  { nodes: Record<string, unknown>[]; edges: Record<string, unknown>
 const THEMES = {
   dark: {
     bg: '#020617',
-    topBar:    'bg-slate-900/80 border-slate-800',
-    titleCls:  'text-white',
-    textCls:   'text-slate-400',
-    legendCls: 'text-slate-400',
-    panelCls:  'bg-slate-900/95 border-slate-700',
-    labelCls:  'text-slate-500',
-    valueCls:  'text-slate-300',
-    tipBg:     '#1e293b', tipBorder: '#334155', tipSh: '0 10px 28px rgba(0,0,0,.55)',
-    tipTitle:  '#f1f5f9', tipLabel: '#64748b',  tipVal: '#cbd5e1',
+    topBar:   'bg-slate-900/80 border-slate-800',
+    titleCls: 'text-white',
+    textCls:  'text-slate-400',
+    legendCls:'text-slate-400',
+    panelCls: 'bg-slate-900/95 border-slate-700',
+    labelCls: 'text-slate-500',
+    valueCls: 'text-slate-300',
+    tipBg: '#1e293b', tipBorder: '#334155', tipSh: '0 10px 28px rgba(0,0,0,.55)',
+    tipTitle: '#f1f5f9', tipLabel: '#64748b', tipVal: '#cbd5e1',
     investigator: '#e2e8f0', wp: '#818cf8', nodo: '#67e8f9', project: '#6ee7b7',
   },
   light: {
     bg: '#f1f5f9',
-    topBar:    'bg-white/90 border-slate-200',
-    titleCls:  'text-slate-900',
-    textCls:   'text-slate-600',
-    legendCls: 'text-slate-600',
-    panelCls:  'bg-white/95 border-slate-200',
-    labelCls:  'text-slate-400',
-    valueCls:  'text-slate-800',
-    tipBg:     '#ffffff', tipBorder: '#e2e8f0', tipSh: '0 10px 28px rgba(0,0,0,.1)',
-    tipTitle:  '#111827', tipLabel: '#9ca3af',  tipVal: '#374151',
+    topBar:   'bg-white/90 border-slate-200',
+    titleCls: 'text-slate-900',
+    textCls:  'text-slate-600',
+    legendCls:'text-slate-600',
+    panelCls: 'bg-white/95 border-slate-200',
+    labelCls: 'text-slate-400',
+    valueCls: 'text-slate-800',
+    tipBg: '#ffffff', tipBorder: '#e2e8f0', tipSh: '0 10px 28px rgba(0,0,0,.1)',
+    tipTitle: '#111827', tipLabel: '#9ca3af', tipVal: '#374151',
     investigator: '#3b82f6', wp: '#6366f1', nodo: '#0891b2', project: '#10b981',
   },
 }
+// En modo 3D usamos siempre el fondo espacial — mismo que HomeView
+const BG_3D = '#06080f'
+
 const theme = computed(() => THEMES[darkMode.value ? 'dark' : 'light'])
 
 const BADGE_COLORS: Record<string, string> = {
   'Investigador': '#818cf8', 'WP': '#6366f1', 'Nodo': '#0891b2', 'Proyecto': '#10b981',
 }
 
-function typeToGroup(type: string) {
-  return type === 'Investigador' ? 'investigator'
-       : type === 'WP' ? 'wp'
-       : type === 'Nodo' ? 'nodo'
-       : 'project'
+function typeToGroup(t: string) {
+  return t === 'Investigador' ? 'investigator' : t === 'WP' ? 'wp' : t === 'Nodo' ? 'nodo' : 'project'
 }
 
-// ─── Node color / font per theme ──────────────────────────────────────────────
+// ─── Node color / font ────────────────────────────────────────────────────────
 function getNodeColor(group: string) {
   const d = darkMode.value
-  const m: Record<string, unknown> = {
+  return ({
     investigator: d
       ? { background: '#e2e8f0', border: '#94a3b8', highlight: { background: '#bfdbfe', border: '#3b82f6' } }
       : { background: '#3b82f6', border: '#2563eb', highlight: { background: '#bfdbfe', border: '#1d4ed8' } },
@@ -103,9 +108,9 @@ function getNodeColor(group: string) {
     project: d
       ? { background: '#065f46', border: '#059669', highlight: { background: '#059669', border: '#10b981' } }
       : { background: '#10b981', border: '#059669', highlight: { background: '#6ee7b7', border: '#047857' } },
-  }
-  return m[group]
+  } as Record<string, unknown>)[group]
 }
+
 function getNodeFont(group: string) {
   const d = darkMode.value
   return ({
@@ -116,7 +121,7 @@ function getNodeFont(group: string) {
   } as Record<string, unknown>)[group]
 }
 
-// ─── Mouse tracking (tooltip position) ───────────────────────────────────────
+// ─── Mouse ────────────────────────────────────────────────────────────────────
 function onMouseMove(e: MouseEvent) {
   tipX.value = e.clientX + 18
   tipY.value = e.clientY - 10
@@ -126,10 +131,18 @@ function onMouseMove(e: MouseEvent) {
 function build2D() {
   if (!containerRef.value || !rawData) return
 
+  // Pre-calcular nodos conectados para aplicar filtro desde el inicio
+  const connected = new Set<string>()
+  rawData.edges.forEach(e => {
+    if (e['from'] != null) connected.add(String(e['from']))
+    if (e['to'] != null)   connected.add(String(e['to']))
+  })
+
   allNodes = new DataSet<GraphNode>(rawData.nodes.map(n => ({
     ...n,
-    color: getNodeColor(n['group'] as string),
-    font:  getNodeFont(n['group'] as string),
+    color:  getNodeColor(n['group'] as string),
+    font:   getNodeFont(n['group'] as string),
+    hidden: !showUnconnected.value && !connected.has(String(n['id'])),
   })) as GraphNode[])
   allEdges = new DataSet<GraphEdge>(rawData.edges as GraphEdge[])
   containerRef.value.style.background = theme.value.bg
@@ -156,7 +169,6 @@ function build2D() {
     interaction: { hover: true, hideEdgesOnDrag: true, navigationButtons: false, keyboard: false },
   })
 
-  // Custom tooltip via hoverNode — más fiable que el title HTMLElement
   network.on('hoverNode', (params) => {
     const node = allNodes.get(params.node as string) as GraphNode | null
     tooltipNode.value = (node?.data as Record<string, unknown>) ?? null
@@ -176,15 +188,20 @@ async function build3D() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { default: ForceGraph3D } = await import('3d-force-graph') as any
-  const t = theme.value
 
   const nodeColorFn = (n: Record<string, unknown>) => {
-    const m: Record<string, string> = { investigator: t.investigator, wp: t.wp, nodo: t.nodo, project: t.project }
+    const m: Record<string, string> = {
+      investigator: theme.value.investigator,
+      wp:   theme.value.wp,
+      nodo: theme.value.nodo,
+      project: theme.value.project,
+    }
     return m[n['group'] as string] ?? '#888'
   }
+
   const links = rawData.edges.map(e => ({
     source: e['from'], target: e['to'],
-    color:  (e['color'] as Record<string, string> | undefined)?.color ?? '#4b5563',
+    color:  (e['color'] as Record<string, string> | undefined)?.color ?? '#334155',
     width:  (e['width'] as number) ?? 1,
   }))
 
@@ -193,15 +210,15 @@ async function build3D() {
 
   graph3d = ForceGraph3D({ controlType: 'orbit' })(containerRef.value)
     .width(w).height(h)
-    .backgroundColor(t.bg)
+    .backgroundColor(BG_3D)           // siempre fondo espacial, igual que HomeView
     .showNavInfo(false)
-    .nodeLabel('')                 // deshabilitamos label propio, usamos tooltip Vue
+    .nodeLabel('')                     // tooltip gestionado por Vue
     .graphData({ nodes: rawData.nodes.map(n => ({ ...n })), links })
     .nodeColor(nodeColorFn)
     .nodeVal((n: Record<string, unknown>) => Math.max(1, ((n['size'] as number) ?? 20) / 6))
-    .linkColor((l: Record<string, unknown>) => l['color'] as string ?? '#4b5563')
+    .linkColor((l: Record<string, unknown>) => l['color'] as string ?? '#334155')
     .linkWidth((l: Record<string, unknown>) => (l['width'] as number) ?? 1)
-    .linkOpacity(0.45)
+    .linkOpacity(0.4)
     .onNodeHover((n: Record<string, unknown> | null) => {
       tooltipNode.value = n ? (n['data'] as Record<string, unknown> ?? null) : null
       if (containerRef.value) containerRef.value.style.cursor = n ? 'pointer' : 'default'
@@ -210,25 +227,79 @@ async function build3D() {
       selected.value = (n['data'] as Record<string, unknown>) ?? null
     })
 
-  // Física inicial 3D
+  // ── Estrellas de fondo (igual que HomeView) ──────────────────────────────
   setTimeout(() => {
+    const scene = graph3d?.scene?.()
+    if (scene) {
+      const count = 800
+      const pos = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) {
+        pos[i * 3]     = (Math.random() - 0.5) * 2000
+        pos[i * 3 + 1] = (Math.random() - 0.5) * 2000
+        pos[i * 3 + 2] = (Math.random() - 0.5) * 2000
+      }
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      scene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+        color: 0xffffff, size: 1.2, transparent: true, opacity: 0.3,
+      })))
+    }
+
+    // ── OrbitControls: auto-rotate + zoom sync ───────────────────────────
+    const ctrl = graph3d?.controls?.()
+    if (ctrl) {
+      ctrl.autoRotate = autoRotate.value
+      ctrl.autoRotateSpeed = 0.5   // mismo feel que HomeView (0.4)
+      ctrl.enableDamping = true
+      ctrl.dampingFactor = 0.06
+
+      // Sincronizar slider desde movimientos de cámara
+      ctrl.addEventListener('change', () => {
+        const cam = graph3d?.camera?.()
+        if (!cam || !ctrl) return
+        const p = cam.position, t = ctrl.target
+        const dist = Math.sqrt((p.x-t.x)**2 + (p.y-t.y)**2 + (p.z-t.z)**2)
+        zoomPct3D.value = Math.round(100 - Math.min(100, Math.max(0, (dist - MIN_3D) / (MAX_3D - MIN_3D) * 100)))
+      })
+
+      // Leer posición inicial para setear el slider
+      const cam = graph3d?.camera?.()
+      if (cam) {
+        const p = cam.position, t = ctrl.target
+        const dist = Math.sqrt((p.x-t.x)**2 + (p.y-t.y)**2 + (p.z-t.z)**2)
+        zoomPct3D.value = Math.round(100 - Math.min(100, Math.max(0, (dist - MIN_3D) / (MAX_3D - MIN_3D) * 100)))
+      }
+    }
+
+    // ── Física inicial ────────────────────────────────────────────────────
     graph3d?.d3Force('link')?.distance(linkDist3D.value)
     graph3d?.d3Force('charge')?.strength(charge3D.value)
-    // Auto-rotate via OrbitControls interno
-    if (autoRotate.value) {
-      const ctrl = graph3d?.controls()
-      if (ctrl) { ctrl.autoRotate = true; ctrl.autoRotateSpeed = 1.5 }
-    }
-  }, 300)
+
+  }, 400)
+}
+
+// ─── 3D zoom slider ───────────────────────────────────────────────────────────
+function onZoomSlider3D(e: Event) {
+  if (!graph3d) return
+  const val = Number((e.target as HTMLInputElement).value)
+  const cam = graph3d.camera?.()
+  const ctrl = graph3d.controls?.()
+  if (!cam || !ctrl) return
+  const p = cam.position, t = ctrl.target
+  const dx = p.x - t.x, dy = p.y - t.y, dz = p.z - t.z
+  const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1
+  const newDist = MIN_3D + ((100 - val) / 100) * (MAX_3D - MIN_3D)
+  cam.position.set(t.x + (dx/len) * newDist, t.y + (dy/len) * newDist, t.z + (dz/len) * newDist)
+  ctrl.update()
+  zoomPct3D.value = val
 }
 
 // ─── Switch 2D ↔ 3D ──────────────────────────────────────────────────────────
 async function switchView() {
-  selected.value = null
-  tooltipNode.value = null
+  selected.value = null; tooltipNode.value = null
   const goTo3D = !view3D.value
-  if (network) { network.destroy(); network = null }
-  if (graph3d)  { graph3d._destructor?.(); graph3d = null }
+  network?.destroy(); network = null
+  graph3d?._destructor?.(); graph3d = null
   if (containerRef.value) containerRef.value.innerHTML = ''
   view3D.value = goTo3D
   await nextTick()
@@ -238,15 +309,17 @@ async function switchView() {
 // ─── Toggle day / night ───────────────────────────────────────────────────────
 function toggleDarkMode() {
   darkMode.value = !darkMode.value
-  const t = theme.value
   if (view3D.value && graph3d) {
-    graph3d.backgroundColor(t.bg)
+    // 3D siempre mantiene fondo espacial — solo actualizamos colores de nodos
     graph3d.nodeColor((n: Record<string, unknown>) => {
-      const m: Record<string, string> = { investigator: t.investigator, wp: t.wp, nodo: t.nodo, project: t.project }
+      const m: Record<string, string> = {
+        investigator: theme.value.investigator, wp: theme.value.wp,
+        nodo: theme.value.nodo, project: theme.value.project,
+      }
       return m[n['group'] as string] ?? '#888'
     })
   } else if (!view3D.value && network && rawData) {
-    if (containerRef.value) containerRef.value.style.background = t.bg
+    if (containerRef.value) containerRef.value.style.background = theme.value.bg
     allNodes.update(rawData.nodes.map(n => ({
       id:    n['id'],
       color: getNodeColor(n['group'] as string),
@@ -257,12 +330,14 @@ function toggleDarkMode() {
 
 // ─── 2D physics ───────────────────────────────────────────────────────────────
 function applyPhysics2D() {
-  network?.setOptions({ physics: { forceAtlas2Based: { gravitationalConstant: gravity.value, springLength: springLength.value } } })
+  network?.setOptions({ physics: { forceAtlas2Based: {
+    gravitationalConstant: gravity.value, springLength: springLength.value,
+  }}})
 }
 
 function toggleUnconnected() {
-  if (!network || !allNodes) return
   showUnconnected.value = !showUnconnected.value
+  if (!allNodes || !allEdges) return
   const connected = new Set<string>()
   allEdges.get().forEach(e => {
     if (e.from != null) connected.add(String(e.from))
@@ -283,8 +358,8 @@ function apply3DPhysics() {
 
 function toggleAutoRotate() {
   autoRotate.value = !autoRotate.value
-  const ctrl = graph3d?.controls()
-  if (ctrl) { ctrl.autoRotate = autoRotate.value; ctrl.autoRotateSpeed = 1.5 }
+  const ctrl = graph3d?.controls?.()
+  if (ctrl) { ctrl.autoRotate = autoRotate.value; ctrl.autoRotateSpeed = 0.5 }
 }
 
 // ─── Fit ──────────────────────────────────────────────────────────────────────
@@ -314,29 +389,36 @@ onUnmounted(() => { network?.destroy(); graph3d?._destructor?.() })
 // ─── Legend ───────────────────────────────────────────────────────────────────
 const legendItems = computed(() => ([
   { key: 'investigator', label: 'Investigador',  color: theme.value.investigator },
-  { key: 'wp',           label: 'Work Package',  color: theme.value.wp           },
-  { key: 'nodo',         label: 'Nodo Temático', color: theme.value.nodo         },
-  { key: 'project',      label: 'Proyecto',      color: theme.value.project      },
+  { key: 'wp',           label: 'Work Package',  color: theme.value.wp },
+  { key: 'nodo',         label: 'Nodo Temático', color: theme.value.nodo },
+  { key: 'project',      label: 'Proyecto',      color: theme.value.project },
 ]))
 </script>
 
 <template>
   <div
     class="fixed inset-0 md:left-56 overflow-hidden flex flex-col transition-colors duration-300"
-    :style="{ backgroundColor: theme.bg }"
+    :style="{ backgroundColor: view3D ? BG_3D : theme.bg }"
     @mousemove="onMouseMove"
   >
 
     <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
     <div
       class="flex items-center justify-between px-4 py-2 backdrop-blur border-b flex-shrink-0 z-10 transition-colors duration-300"
-      :class="theme.topBar"
+      :class="view3D ? 'bg-slate-950/70 border-slate-800/60' : theme.topBar"
     >
       <!-- Título + stats -->
       <div class="flex items-center gap-2 min-w-0">
         <NetworkIcon class="w-4 h-4 text-indigo-400 flex-shrink-0" />
-        <span class="text-sm font-semibold flex-shrink-0" :class="theme.titleCls">Mapa de Colaboración</span>
-        <div v-if="stats" class="hidden md:flex items-center gap-3 ml-3 text-xs" :class="theme.textCls">
+        <span
+          class="text-sm font-semibold flex-shrink-0"
+          :class="view3D ? 'text-white' : theme.titleCls"
+        >Mapa de Colaboración</span>
+        <div
+          v-if="stats"
+          class="hidden md:flex items-center gap-3 ml-3 text-xs"
+          :class="view3D ? 'text-slate-400' : theme.textCls"
+        >
           <span class="flex items-center gap-1"><Users class="w-3 h-3" />{{ stats.researchers }}</span>
           <span class="flex items-center gap-1"><FolderOpen class="w-3 h-3" />{{ stats.projects }}</span>
           <span class="flex items-center gap-1"><Layers class="w-3 h-3" />{{ stats.wps }} WPs</span>
@@ -346,10 +428,10 @@ const legendItems = computed(() => ([
         </div>
       </div>
 
-      <!-- Controles -->
+      <!-- Controles derechos -->
       <div class="flex items-center gap-2 flex-shrink-0">
 
-        <!-- ── Controles 2D ── -->
+        <!-- ── 2D controls ── -->
         <template v-if="!view3D">
           <div class="hidden xl:flex items-center gap-2 text-xs" :class="theme.textCls">
             <span>Gravedad</span>
@@ -365,53 +447,61 @@ const legendItems = computed(() => ([
           </div>
           <button
             class="hidden lg:block px-2 py-1 text-xs rounded border transition-colors"
-            :class="showUnconnected ? `border-slate-600 hover:border-slate-400 ${theme.textCls}` : 'border-indigo-500 text-indigo-400'"
+            :class="showUnconnected
+              ? `border-slate-600 hover:border-slate-400 ${theme.textCls}`
+              : 'border-indigo-500 text-indigo-400'"
             @click="toggleUnconnected"
           >{{ showUnconnected ? 'Ocultar aislados' : 'Mostrar todos' }}</button>
         </template>
 
-        <!-- ── Controles 3D ── -->
+        <!-- ── 3D controls ── -->
         <template v-if="view3D">
-          <div class="hidden xl:flex items-center gap-2 text-xs" :class="theme.textCls">
+          <div class="hidden xl:flex items-center gap-2 text-xs text-slate-400">
             <span>Distancia</span>
             <input type="range" min="30" max="400" step="10" v-model.number="linkDist3D"
               class="w-20 h-1 cursor-pointer" style="accent-color:#818cf8" @change="apply3DPhysics" />
             <span class="w-8 tabular-nums">{{ linkDist3D }}</span>
           </div>
-          <div class="hidden xl:flex items-center gap-2 text-xs" :class="theme.textCls">
+          <div class="hidden xl:flex items-center gap-2 text-xs text-slate-400">
             <span>Carga</span>
             <input type="range" min="-1000" max="-30" step="10" v-model.number="charge3D"
               class="w-20 h-1 cursor-pointer" style="accent-color:#818cf8" @change="apply3DPhysics" />
             <span class="w-14 tabular-nums">{{ charge3D }}</span>
           </div>
-          <!-- Auto-rotate -->
           <button
             class="flex items-center gap-1.5 px-2 py-1 text-xs rounded border transition-colors"
-            :class="autoRotate ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10' : `border-slate-600 ${theme.textCls} hover:border-slate-400`"
+            :class="autoRotate
+              ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+              : 'border-slate-600 text-slate-400 hover:border-slate-400'"
             @click="toggleAutoRotate"
           >
-            <RefreshCw class="w-3 h-3" :class="autoRotate ? 'animate-spin' : ''" style="animation-duration:2s" />
+            <RefreshCw class="w-3 h-3" :class="autoRotate ? 'animate-spin' : ''" style="animation-duration:2.5s" />
             Rotar
           </button>
         </template>
 
         <!-- Encuadrar -->
-        <button class="px-2 py-1 text-xs rounded border border-slate-500 transition-colors" :class="theme.textCls" @click="fitAll">
-          Encuadrar
-        </button>
+        <button
+          class="px-2 py-1 text-xs rounded border transition-colors"
+          :class="view3D ? 'border-slate-600 text-slate-400 hover:border-slate-400' : `border-slate-500 ${theme.textCls} hover:border-slate-400`"
+          @click="fitAll"
+        >Encuadrar</button>
 
         <!-- 2D / 3D toggle -->
         <button
           class="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border font-medium transition-colors"
-          :class="view3D ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10' : `border-slate-500 ${theme.textCls} hover:border-slate-400`"
+          :class="view3D
+            ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+            : `border-slate-500 ${theme.textCls} hover:border-slate-400`"
           @click="switchView"
         >
           <component :is="view3D ? LayoutGrid : Box" class="w-3.5 h-3.5" />
           {{ view3D ? '2D' : '3D' }}
         </button>
 
-        <!-- Day / Night -->
+        <!-- Day / Night (solo en 2D; en 3D es siempre oscuro) -->
         <button
+          v-if="!view3D"
           class="p-1.5 rounded-lg border transition-colors"
           :class="darkMode
             ? 'border-slate-700 text-yellow-400 hover:bg-yellow-400/10'
@@ -421,7 +511,6 @@ const legendItems = computed(() => ([
         >
           <component :is="darkMode ? Sun : Moon" class="w-3.5 h-3.5" />
         </button>
-
       </div>
     </div>
 
@@ -432,8 +521,6 @@ const legendItems = computed(() => ([
         <p class="text-indigo-400 text-sm">Construyendo red de colaboración…</p>
       </div>
     </div>
-
-    <!-- ── Error ──────────────────────────────────────────────────────────────── -->
     <div v-else-if="error" class="flex-1 flex items-center justify-center">
       <p class="text-red-400 text-sm">{{ error }}</p>
     </div>
@@ -441,7 +528,31 @@ const legendItems = computed(() => ([
     <!-- ── Contenedor del grafo ───────────────────────────────────────────────── -->
     <div v-show="!loading && !error" ref="containerRef" class="flex-1 w-full" />
 
-    <!-- ── Tooltip hover (Vue template, ambos modos) ─────────────────────────── -->
+    <!-- ── Leyenda (bottom-left) ─────────────────────────────────────────────── -->
+    <div class="absolute bottom-6 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
+      <div v-for="item in legendItems" :key="item.key" class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full border border-white/20" :style="{ backgroundColor: item.color }" />
+        <span class="text-xs" :class="view3D ? 'text-slate-400' : theme.legendCls">{{ item.label }}</span>
+      </div>
+    </div>
+
+    <!-- ── Zoom slider 3D (bottom-right) — igual que Mapa 3D ─────────────────── -->
+    <div v-if="view3D" class="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-1">
+      <p class="text-xs text-slate-600 tabular-nums">Zoom {{ zoomPct3D }}%</p>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-700">−</span>
+        <input
+          type="range" min="0" max="100" :value="zoomPct3D"
+          class="w-28 h-1 appearance-none rounded-full cursor-pointer"
+          style="accent-color:#818cf8; background:rgba(255,255,255,0.08)"
+          @input="onZoomSlider3D"
+        />
+        <span class="text-xs text-slate-700">+</span>
+      </div>
+      <p class="text-xs text-slate-700">Arrastrar para rotar</p>
+    </div>
+
+    <!-- ── Tooltip hover (Vue, ambos modos) ──────────────────────────────────── -->
     <Transition name="tip">
       <div
         v-if="tooltipNode"
@@ -451,86 +562,68 @@ const legendItems = computed(() => ([
         <div
           class="rounded-xl p-3 w-56"
           :style="{
-            background: theme.tipBg,
-            border: `1px solid ${theme.tipBorder}`,
-            boxShadow: theme.tipSh,
+            background: view3D ? '#1e293b' : theme.tipBg,
+            border: `1px solid ${(BADGE_COLORS[tooltipNode['type'] as string] ?? '#334155') + '44'}`,
+            boxShadow: view3D ? '0 10px 28px rgba(0,0,0,.6)' : theme.tipSh,
             fontFamily: 'Inter, system-ui, sans-serif',
           }"
         >
-          <!-- Badge tipo -->
           <div
             class="inline-block text-xs font-bold px-2 py-0.5 rounded-full mb-2"
             :style="{
               background: (BADGE_COLORS[tooltipNode['type'] as string] ?? '#94a3b8') + '28',
               color: BADGE_COLORS[tooltipNode['type'] as string] ?? '#94a3b8',
-              textTransform: 'uppercase',
-              letterSpacing: '.05em',
-              fontSize: '10px',
+              textTransform: 'uppercase', letterSpacing: '.05em', fontSize: '10px',
             }"
           >{{ tooltipNode['type'] }}</div>
 
-          <!-- Nombre -->
-          <div class="text-sm font-bold leading-snug mb-2" :style="{ color: theme.tipTitle }">
+          <div class="text-sm font-bold leading-snug mb-2" :style="{ color: view3D ? '#f1f5f9' : theme.tipTitle }">
             {{ tooltipNode['name'] }}
           </div>
 
-          <!-- Campos por tipo -->
           <template v-if="tooltipNode['type'] === 'Investigador'">
             <div v-if="tooltipNode['institution']" class="tip-row">
-              <span :style="{ color: theme.tipLabel }">🏛 Institución</span>
-              <span class="truncate" :style="{ color: theme.tipVal }">{{ tooltipNode['institution'] }}</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">🏛 Institución</span>
+              <span class="truncate" :style="{ color: view3D ? '#cbd5e1' : theme.tipVal }">{{ tooltipNode['institution'] }}</span>
             </div>
             <div v-if="tooltipNode['category']" class="tip-row">
-              <span :style="{ color: theme.tipLabel }">🔖 Categoría</span>
-              <span class="truncate" :style="{ color: theme.tipVal }">{{ tooltipNode['category'] }}</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">🔖 Categoría</span>
+              <span class="truncate" :style="{ color: view3D ? '#cbd5e1' : theme.tipVal }">{{ tooltipNode['category'] }}</span>
             </div>
             <div v-if="tooltipNode['orcid']" class="tip-row">
-              <span :style="{ color: theme.tipLabel }">ORCID</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">ORCID</span>
               <span class="font-mono truncate" style="color:#818cf8;font-size:10px">{{ tooltipNode['orcid'] }}</span>
             </div>
             <div v-if="tooltipNode['h_index'] != null" class="tip-row items-baseline">
-              <span :style="{ color: theme.tipLabel }">H-index</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">H-index</span>
               <span class="font-black text-xl leading-none" style="color:#60a5fa">{{ tooltipNode['h_index'] }}</span>
             </div>
             <div v-if="tooltipNode['citations'] != null" class="tip-row">
-              <span :style="{ color: theme.tipLabel }">📊 Citas</span>
-              <span :style="{ color: theme.tipVal }">{{ Number(tooltipNode['citations']).toLocaleString('es-CL') }}</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">📊 Citas</span>
+              <span :style="{ color: view3D ? '#cbd5e1' : theme.tipVal }">{{ Number(tooltipNode['citations']).toLocaleString('es-CL') }}</span>
             </div>
             <div v-if="tooltipNode['works'] != null" class="tip-row">
-              <span :style="{ color: theme.tipLabel }">📄 Publicaciones</span>
-              <span :style="{ color: theme.tipVal }">{{ tooltipNode['works'] }}</span>
+              <span :style="{ color: view3D ? '#64748b' : theme.tipLabel }">📄 Publicaciones</span>
+              <span :style="{ color: view3D ? '#cbd5e1' : theme.tipVal }">{{ tooltipNode['works'] }}</span>
             </div>
           </template>
-          <template v-else-if="tooltipNode['type'] === 'WP'">
-            <div class="text-xs" :style="{ color: theme.tipLabel }">Línea de investigación del consorcio CECAN</div>
-          </template>
-          <template v-else-if="tooltipNode['type'] === 'Proyecto'">
-            <div class="text-xs" :style="{ color: theme.tipLabel }">Proyecto científico asociado a este WP</div>
-          </template>
           <template v-else>
-            <div class="text-xs" :style="{ color: theme.tipLabel }">Área temática transversal</div>
+            <div class="text-xs" :style="{ color: view3D ? '#64748b' : theme.tipLabel }">
+              {{ tooltipNode['type'] === 'WP' ? 'Línea de investigación del consorcio'
+               : tooltipNode['type'] === 'Proyecto' ? 'Proyecto científico asociado'
+               : 'Área temática transversal' }}
+            </div>
           </template>
         </div>
       </div>
     </Transition>
 
-    <!-- ── Leyenda ────────────────────────────────────────────────────────────── -->
-    <div class="absolute bottom-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
-      <div v-if="view3D" class="mb-1 flex items-center gap-1.5 text-xs font-medium text-indigo-400">
-        <Box class="w-3 h-3" /> 3D — arrastra para rotar · scroll para zoom
-      </div>
-      <div v-for="item in legendItems" :key="item.key" class="flex items-center gap-2">
-        <span class="w-3 h-3 rounded-full border border-white/20" :style="{ backgroundColor: item.color }" />
-        <span class="text-xs" :class="theme.legendCls">{{ item.label }}</span>
-      </div>
-    </div>
-
-    <!-- ── Panel detalle (click) ──────────────────────────────────────────────── -->
+    <!-- ── Panel detalle click ────────────────────────────────────────────────── -->
     <Transition name="slide">
       <div
         v-if="selected"
         class="absolute top-14 right-3 z-20 w-64 backdrop-blur border rounded-xl p-4 shadow-2xl"
-        :class="theme.panelCls"
+        :class="view3D ? 'bg-slate-900/95 border-slate-700' : theme.panelCls"
       >
         <div class="flex items-start justify-between mb-3">
           <span
@@ -540,41 +633,45 @@ const legendItems = computed(() => ([
               color: legendItems.find(i => i.key === typeToGroup(selected!['type'] as string))?.color,
             }"
           >{{ selected['type'] }}</span>
-          <button :class="darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-700'" @click="selected = null">
-            <X class="w-4 h-4" />
-          </button>
+          <button
+            class="text-slate-500 hover:text-slate-300 transition-colors"
+            @click="selected = null"
+          ><X class="w-4 h-4" /></button>
         </div>
 
-        <p class="font-semibold text-sm leading-snug mb-3" :class="theme.titleCls">{{ selected['name'] }}</p>
+        <p
+          class="font-semibold text-sm leading-snug mb-3"
+          :class="view3D ? 'text-white' : theme.titleCls"
+        >{{ selected['name'] }}</p>
 
         <div class="space-y-1.5 text-xs">
           <div v-if="selected['institution']" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">Institución</span>
-            <span class="truncate" :class="theme.valueCls">{{ selected['institution'] }}</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">Institución</span>
+            <span class="truncate" :class="view3D ? 'text-slate-300' : theme.valueCls">{{ selected['institution'] }}</span>
           </div>
           <div v-if="selected['orcid']" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">ORCID</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">ORCID</span>
             <span class="font-mono text-indigo-400 text-xs truncate">{{ selected['orcid'] }}</span>
           </div>
           <div v-if="selected['h_index'] != null" class="flex gap-2 items-baseline">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">H-index</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">H-index</span>
             <span class="font-black text-2xl leading-none text-blue-400">{{ selected['h_index'] }}</span>
           </div>
           <div v-if="selected['citations'] != null" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">Citas</span>
-            <span :class="theme.valueCls">{{ Number(selected['citations']).toLocaleString('es-CL') }}</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">Citas</span>
+            <span :class="view3D ? 'text-slate-300' : theme.valueCls">{{ Number(selected['citations']).toLocaleString('es-CL') }}</span>
           </div>
           <div v-if="selected['works'] != null" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">Publicaciones</span>
-            <span :class="theme.valueCls">{{ selected['works'] }}</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">Publicaciones</span>
+            <span :class="view3D ? 'text-slate-300' : theme.valueCls">{{ selected['works'] }}</span>
           </div>
           <div v-if="selected['category']" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">Categoría</span>
-            <span :class="theme.valueCls">{{ selected['category'] }}</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">Categoría</span>
+            <span :class="view3D ? 'text-slate-300' : theme.valueCls">{{ selected['category'] }}</span>
           </div>
           <div v-if="selected['email']" class="flex gap-2">
-            <span class="w-20 flex-shrink-0" :class="theme.labelCls">Email</span>
-            <span class="truncate" :class="theme.valueCls">{{ selected['email'] }}</span>
+            <span class="w-20 flex-shrink-0" :class="view3D ? 'text-slate-500' : theme.labelCls">Email</span>
+            <span class="truncate" :class="view3D ? 'text-slate-300' : theme.valueCls">{{ selected['email'] }}</span>
           </div>
         </div>
       </div>
