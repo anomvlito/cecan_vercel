@@ -153,8 +153,8 @@ def my_tasks(
             "member_id": item["member_id"],
             "status": item["status"],
             "progress": item["progress"],
-            "start_date": start_date.isoformat() if start_date else None,
-            "end_date": end_date.isoformat() if end_date else None,
+            "start_date": start_date.isoformat()[:10] if start_date else None,
+            "end_date": end_date.isoformat()[:10] if end_date else None,
             "is_overdue": is_overdue,
         })
 

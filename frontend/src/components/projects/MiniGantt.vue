@@ -19,10 +19,17 @@ const total = computed(() => {
   return Math.max(...props.activities.map(a => a.end_month || 1), 12)
 })
 
+// ── Parsea fecha ISO como hora local (elimina componente de hora si existe) ───
+function parseLocalDate(str: string | null | undefined): Date | null {
+  if (!str) return null
+  const d = new Date(str.split('T')[0] + 'T00:00:00')
+  return isNaN(d.getTime()) ? null : d
+}
+
 // ── Etiquetas de columnas ────────────────────────────────────────────────────
 const monthLabels = computed(() => {
-  if (props.projectStartDate) {
-    const start = new Date(props.projectStartDate + 'T00:00:00')
+  const start = parseLocalDate(props.projectStartDate)
+  if (start) {
     return Array.from({ length: total.value }, (_, i) => {
       const d = new Date(start.getFullYear(), start.getMonth() + i)
       return d.toLocaleDateString('es-CL', { month: 'short', year: '2-digit' })
@@ -34,8 +41,8 @@ const monthLabels = computed(() => {
 // ── Índices de columnas donde cambia el año (para separador visual) ──────────
 const yearChanges = computed<Set<number>>(() => {
   const set = new Set<number>()
-  if (!props.projectStartDate) return set
-  const start = new Date(props.projectStartDate + 'T00:00:00')
+  const start = parseLocalDate(props.projectStartDate)
+  if (!start) return set
   for (let i = 1; i < total.value; i++) {
     const prev = new Date(start.getFullYear(), start.getMonth() + i - 1)
     const curr = new Date(start.getFullYear(), start.getMonth() + i)
@@ -46,8 +53,8 @@ const yearChanges = computed<Set<number>>(() => {
 
 // ── Posición de "Hoy" ────────────────────────────────────────────────────────
 const todayLeft = computed<string | null>(() => {
-  if (!props.projectStartDate) return null
-  const start = new Date(props.projectStartDate + 'T00:00:00')
+  const start = parseLocalDate(props.projectStartDate)
+  if (!start) return null
   const today = new Date()
   const monthsDiff =
     (today.getFullYear() - start.getFullYear()) * 12 +
@@ -86,9 +93,9 @@ function barTitle(activity: ProjectActivity): string {
 }
 
 function fmt(iso: string): string {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('es-CL', {
-    day: '2-digit', month: 'short', year: 'numeric',
-  })
+  const d = parseLocalDate(iso)
+  if (!d) return iso.split('T')[0] ?? iso
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 // ── Clases de color por estado ───────────────────────────────────────────────

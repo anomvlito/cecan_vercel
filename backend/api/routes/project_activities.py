@@ -78,8 +78,8 @@ def list_activities(
             from dateutil.relativedelta import relativedelta
             start = project_start + relativedelta(months=int(sm) - 1)
             end = project_start + relativedelta(months=int(em)) - relativedelta(days=1)
-            item["start_date"] = start.isoformat()
-            item["end_date"] = end.isoformat()
+            item["start_date"] = start.isoformat()[:10]
+            item["end_date"] = end.isoformat()[:10]
         else:
             item["start_date"] = None
             item["end_date"] = None

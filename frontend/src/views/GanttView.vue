@@ -39,20 +39,13 @@ async function saveStatus(
   const act = statusModalActivity.value
   if (!act) return
   try {
-    const updated = await projectActivitiesApi.update(act.id, {
+    await projectActivitiesApi.update(act.id, {
       status,
       progress,
       budget_allocated: budget,
       payment_status: paymentStatus,
     })
-    const idx = activities.value.findIndex(a => a.id === act.id)
-    if (idx >= 0) {
-      activities.value = [
-        ...activities.value.slice(0, idx),
-        updated,
-        ...activities.value.slice(idx + 1),
-      ]
-    }
+    await loadActivities()
   } catch {
     error.value = 'Error al guardar estado'
   } finally {
@@ -89,12 +82,19 @@ async function loadActivities() {
 
 watch(selectedProjectId, loadActivities)
 
+// ── Parsea fecha ISO (YYYY-MM-DD o YYYY-MM-DDTHH:MM:SS) como hora local ───────
+function parseLocalDate(str: string | null | undefined): Date | null {
+  if (!str) return null
+  const d = new Date(str.split('T')[0] + 'T00:00:00')
+  return isNaN(d.getTime()) ? null : d
+}
+
 // ── Total months (desde fechas del proyecto si están disponibles) ─────────────
 const totalMonths = computed(() => {
   const proj = selectedProject.value
-  if (proj?.start_date && proj?.end_date) {
-    const s = new Date(proj.start_date + 'T00:00:00')
-    const e = new Date(proj.end_date + 'T00:00:00')
+  const s = parseLocalDate(proj?.start_date)
+  const e = parseLocalDate(proj?.end_date)
+  if (s && e) {
     const months = (e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth() + 1
     if (months > 0) return months
   }
@@ -104,11 +104,10 @@ const totalMonths = computed(() => {
 
 // ── Opciones de mes para el formulario (basadas en fecha inicio del proyecto) ─
 const monthOptions = computed(() => {
-  const proj = selectedProject.value
-  if (!proj?.start_date) {
+  const start = parseLocalDate(selectedProject.value?.start_date)
+  if (!start) {
     return Array.from({ length: 60 }, (_, i) => ({ value: i + 1, label: `Mes ${i + 1}` }))
   }
-  const start = new Date(proj.start_date + 'T00:00:00')
   return Array.from({ length: totalMonths.value }, (_, i) => {
     const d = new Date(start.getFullYear(), start.getMonth() + i)
     const label = d.toLocaleDateString('es-CL', { month: 'short', year: 'numeric' })
@@ -118,9 +117,9 @@ const monthOptions = computed(() => {
 
 // ── Función para mostrar rango de fechas real de una actividad ────────────────
 function activityDateRange(act: ProjectActivity): string {
-  if (act.start_date && act.end_date) {
-    const s = new Date(act.start_date + 'T00:00:00')
-    const e = new Date(act.end_date + 'T00:00:00')
+  const s = parseLocalDate(act.start_date)
+  const e = parseLocalDate(act.end_date)
+  if (s && e) {
     const fmt = (d: Date) => d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: '2-digit' })
     return `${fmt(s)} → ${fmt(e)}`
   }
@@ -139,15 +138,15 @@ async function createActivity() {
   if (!selectedProjectId.value || !addForm.value.description.trim()) return
   saving.value = true
   try {
-    const created = await projectActivitiesApi.create({
+    await projectActivitiesApi.create({
       project_id: selectedProjectId.value,
       description: addForm.value.description,
       start_month: addForm.value.start_month,
       end_month: addForm.value.end_month,
       sort_order: activities.value.length,
     })
-    activities.value = [...activities.value, created]
     addForm.value = { description: '', start_month: 1, end_month: addForm.value.start_month }
+    await loadActivities()
   } catch {
     error.value = 'Error al crear actividad'
   } finally {
@@ -320,7 +319,7 @@ const selectedProject = computed(() =>
               Actividades ({{ activities.length }})
             </span>
             <span v-if="selectedProject?.start_date" class="text-xs text-gray-400">
-              Inicio: {{ new Date(selectedProject.start_date).toLocaleDateString('es-CL') }}
+              Inicio: {{ parseLocalDate(selectedProject.start_date)?.toLocaleDateString('es-CL') ?? '—' }}
             </span>
           </div>
 

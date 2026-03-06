@@ -63,13 +63,20 @@ const totalActivities = computed(() => {
   return Object.values(activitiesMap.value).reduce((sum, acts) => sum + acts.length, 0)
 })
 
+// ── Parsea fecha ISO como hora local ──────────────────────────────────────────
+function parseLocalDate(str: string | null | undefined): Date | null {
+  if (!str) return null
+  const d = new Date(str.split('T')[0] + 'T00:00:00')
+  return isNaN(d.getTime()) ? null : d
+}
+
 // ── Bar positioning ────────────────────────────────────────────────────────────
 function getProjectBar(project: ScientificProject): { left: string; width: string } | null {
-  if (!project.start_date || !project.end_date) return null
+  const pStart = parseLocalDate(project.start_date)
+  const pEnd = parseLocalDate(project.end_date)
+  if (!pStart || !pEnd) return null
   const yearStart = new Date(selectedYear.value, 0, 1)
   const yearEnd = new Date(selectedYear.value, 11, 31)
-  const pStart = new Date(project.start_date + 'T00:00:00')
-  const pEnd = new Date(project.end_date + 'T00:00:00')
   if (pEnd < yearStart || pStart > yearEnd) return null
   const effStart = pStart < yearStart ? yearStart : pStart
   const effEnd = pEnd > yearEnd ? yearEnd : pEnd
@@ -79,11 +86,11 @@ function getProjectBar(project: ScientificProject): { left: string; width: strin
 }
 
 function getActivityBar(activity: ProjectActivity, projectStartDate: string | null): { left: string; width: string } | null {
-  if (!activity.start_date || !activity.end_date || !projectStartDate) return null
+  const aStart = parseLocalDate(activity.start_date)
+  const aEnd = parseLocalDate(activity.end_date)
+  if (!aStart || !aEnd || !projectStartDate) return null
   const yearStart = new Date(selectedYear.value, 0, 1)
   const yearEnd = new Date(selectedYear.value, 11, 31)
-  const aStart = new Date(activity.start_date + 'T00:00:00')
-  const aEnd = new Date(activity.end_date + 'T00:00:00')
   if (aEnd < yearStart || aStart > yearEnd) return null
   const effStart = aStart < yearStart ? yearStart : aStart
   const effEnd = aEnd > yearEnd ? yearEnd : aEnd

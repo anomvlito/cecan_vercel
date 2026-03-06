@@ -100,7 +100,9 @@ const raciLabels: Record<string, string> = {
 
 function formatDate(d: string | null) {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
+  const date = new Date(d.split('T')[0] + 'T00:00:00')
+  if (isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 </script>
 
