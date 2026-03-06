@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { RouterLink, useRoute } from 'vue-router'
-import { Upload, FlaskConical, BookMarked, Users, GraduationCap, X, Network, GanttChartSquare, ClipboardList, BookOpen, HelpCircle } from 'lucide-vue-next'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { Upload, FlaskConical, BookMarked, Users, GraduationCap, X, Network, GanttChartSquare, ClipboardList, BookOpen, HelpCircle, LogIn, LogOut, UserCircle } from 'lucide-vue-next'
 import { useGuideStore } from '@/stores/guide'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
 
 const route = useRoute()
+const router = useRouter()
 const guideStore = useGuideStore()
+const authStore = useAuthStore()
+
+function handleLogout() {
+  authStore.logout()
+  router.push('/login')
+}
 
 const navItems = [
   { to: '/publications', icon: BookOpen, label: 'Publicaciones' },
@@ -78,6 +86,24 @@ const navItems = [
         {{ guideStore.active ? 'Desactivar leyendas' : 'Activar leyendas guía' }}
         <span v-if="guideStore.active" class="ml-auto w-2 h-2 rounded-full bg-blue-500" />
       </button>
+      <!-- Usuario autenticado -->
+      <div v-if="authStore.isAuthenticated" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50">
+        <UserCircle class="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <span class="text-xs text-gray-600 truncate flex-1">{{ authStore.user?.email }}</span>
+        <button class="text-gray-400 hover:text-red-500 transition-colors" @click="handleLogout">
+          <LogOut class="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <!-- Login si no autenticado -->
+      <RouterLink
+        v-else
+        to="/login"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+        @click="$emit('close')"
+      >
+        <LogIn class="w-4 h-4 flex-shrink-0" />
+        Iniciar sesión
+      </RouterLink>
       <p class="text-xs text-gray-400 px-3">Plataforma CECAN</p>
     </div>
   </aside>

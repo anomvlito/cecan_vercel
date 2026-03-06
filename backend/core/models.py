@@ -7,6 +7,20 @@ class Base(DeclarativeBase):
     pass
 
 
+class AppUser(Base):
+    """Cuenta de acceso al sistema (separada de academic_members)."""
+
+    __tablename__ = "app_users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    role = Column(String(50), default="member")  # admin | member
+    is_active = Column(Boolean, default=True)
+    academic_member_id = Column(Integer, ForeignKey("academic_members.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Journal(Base):
     """Datos JCR de revistas científicas (importados desde Excel JCR)."""
 

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingView from '../views/LandingView.vue'
+import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
 import PublicationsView from '../views/PublicationsView.vue'
 import UploadView from '../views/UploadView.vue'
@@ -13,6 +14,12 @@ import MyTasksView from '../views/MyTasksView.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: { public: true },
+    },
     {
       path: '/',
       name: 'home',

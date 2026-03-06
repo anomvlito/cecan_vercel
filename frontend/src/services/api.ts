@@ -220,4 +220,17 @@ export const responsibilitiesApi = {
   },
 }
 
+export const authApi = {
+  login: async (email: string, password: string) => {
+    const { data } = await api.post<{
+      access_token: string
+      token_type: string
+      email: string
+      role: string
+      academic_member_id: number | null
+    }>('/auth/login', { email, password })
+    return data
+  },
+}
+
 export default api
