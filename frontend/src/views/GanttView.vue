@@ -20,6 +20,7 @@ const activities    = ref<ProjectActivity[]>([])
 const loading       = ref(false)
 const error         = ref<string | null>(null)
 const ganttRef      = ref<InstanceType<typeof DHMLXGantt> | null>(null)
+const globalGanttRef = ref<InstanceType<typeof ProjectsGantt> | null>(null)
 const showAddForm   = ref(false)
 
 // ── ActivityStatusModal ───────────────────────────────────────────────────────
@@ -261,6 +262,28 @@ const raciColors: Record<string, string> = {
         </div>
       </template>
 
+      <!-- Botones Vista Global -->
+      <template v-if="activeTab === 'global'">
+        <div class="ml-auto flex items-center gap-1 shrink-0">
+          <button
+            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            title="Expandir todo"
+            @click="globalGanttRef?.expandAllProjects()"
+          >
+            <ChevronsUpDown class="w-3.5 h-3.5" />
+            Expandir
+          </button>
+          <button
+            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            title="Contraer todo"
+            @click="globalGanttRef?.collapseAllProjects()"
+          >
+            <ChevronsDownUp class="w-3.5 h-3.5" />
+            Contraer
+          </button>
+        </div>
+      </template>
+
       <!-- Botones Gantt (solo en tab proyecto con proyecto seleccionado) -->
       <template v-if="activeTab === 'project' && selectedProjectId">
         <div class="ml-auto flex items-center gap-1 shrink-0">
@@ -367,7 +390,7 @@ const raciColors: Record<string, string> = {
 
     <!-- ── GLOBAL TAB ─────────────────────────────────────────────────────── -->
     <div v-if="activeTab === 'global'" class="flex-1 min-h-0 overflow-hidden">
-      <ProjectsGantt />
+      <ProjectsGantt ref="globalGanttRef" />
     </div>
 
     <!-- ── PROJECT TAB ────────────────────────────────────────────────────── -->

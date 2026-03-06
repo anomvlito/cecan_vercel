@@ -108,12 +108,7 @@ const activityBarColor: Record<string, string> = {
 }
 
 // ── Expand / collapse ─────────────────────────────────────────────────────────
-async function toggleProject(projectId: number) {
-  if (expandedProjects.value.has(projectId)) {
-    expandedProjects.value = new Set([...expandedProjects.value].filter(id => id !== projectId))
-    return
-  }
-  expandedProjects.value = new Set([...expandedProjects.value, projectId])
+async function loadActivitiesForProject(projectId: number) {
   if (activitiesMap.value[projectId]) return
   loadingActivities.value = new Set([...loadingActivities.value, projectId])
   try {
@@ -125,6 +120,27 @@ async function toggleProject(projectId: number) {
     loadingActivities.value = new Set([...loadingActivities.value].filter(id => id !== projectId))
   }
 }
+
+async function toggleProject(projectId: number) {
+  if (expandedProjects.value.has(projectId)) {
+    expandedProjects.value = new Set([...expandedProjects.value].filter(id => id !== projectId))
+    return
+  }
+  expandedProjects.value = new Set([...expandedProjects.value, projectId])
+  await loadActivitiesForProject(projectId)
+}
+
+async function expandAllProjects() {
+  const ids = projects.value.map(p => p.id)
+  expandedProjects.value = new Set(ids)
+  await Promise.all(ids.map(id => loadActivitiesForProject(id)))
+}
+
+function collapseAllProjects() {
+  expandedProjects.value = new Set()
+}
+
+defineExpose({ expandAllProjects, collapseAllProjects })
 </script>
 
 <template>
