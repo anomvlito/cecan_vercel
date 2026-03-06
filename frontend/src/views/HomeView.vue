@@ -2,8 +2,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { useRouter } from 'vue-router'
+import { ArrowLeft } from 'lucide-vue-next'
 import api from '@/services/api'
 import GuideLabel from '@/components/ui/GuideLabel.vue'
+
+const router = useRouter()
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface MapPoint {
@@ -79,8 +83,9 @@ async function fetchMap() {
 
 // ─── Dimensiones del canvas ───────────────────────────────────────────────────
 function canvasSize(): { w: number; h: number } {
-  const sidebar = 224 // w-56
-  const topbar = window.innerWidth < 768 ? 56 : 0
+  const isMobile = window.innerWidth < 768
+  const sidebar = isMobile ? 0 : 224  // sidebar no existe en mobile
+  const topbar = isMobile ? 56 : 0    // topbar solo en mobile
   return {
     w: window.innerWidth - sidebar,
     h: window.innerHeight - topbar,
@@ -327,7 +332,7 @@ const hoveredClusterColor = computed(
 </script>
 
 <template>
-  <div class="fixed inset-0 md:left-56 bg-[#06080f] overflow-hidden select-none" style="top: 0">
+  <div class="fixed inset-0 top-14 md:top-0 md:left-56 bg-[#06080f] overflow-hidden select-none">
 
     <!-- Loading -->
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center z-10">
@@ -350,13 +355,21 @@ const hoveredClusterColor = computed(
       <canvas ref="canvasRef" />
     </GuideLabel>
 
-    <!-- Título flotante -->
-    <div class="absolute top-4 left-6 z-10 pointer-events-none">
-      <p class="text-xs font-semibold text-blue-400 tracking-widest uppercase mb-1">CECAN Research Map</p>
-      <h1 class="text-2xl font-bold text-white leading-tight">Mapa de Publicaciones</h1>
-      <p class="text-sm text-gray-400 mt-0.5">
-        {{ points.length }} publicaciones · {{ clusters.length }} clusters temáticos
-      </p>
+    <!-- Título flotante + botón volver -->
+    <div class="absolute top-4 left-4 z-10 flex items-start gap-3">
+      <button
+        class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm flex-shrink-0 mt-0.5"
+        @click="router.back()"
+      >
+        <ArrowLeft class="w-4 h-4" />
+      </button>
+      <div class="pointer-events-none">
+        <p class="text-xs font-semibold text-blue-400 tracking-widest uppercase mb-1">CECAN Research Map</p>
+        <h1 class="text-2xl font-bold text-white leading-tight">Mapa de Publicaciones</h1>
+        <p class="text-sm text-gray-400 mt-0.5">
+          {{ points.length }} publicaciones · {{ clusters.length }} clusters temáticos
+        </p>
+      </div>
     </div>
 
     <!-- Leyenda de clusters -->

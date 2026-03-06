@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { Upload, FlaskConical, BookMarked, Users, GraduationCap, X, Network, GanttChartSquare, ClipboardList, BookOpen, HelpCircle, LogIn, LogOut, UserCircle } from 'lucide-vue-next'
+import { Upload, FlaskConical, BookMarked, Users, GraduationCap, X, Network, GanttChartSquare, ClipboardList, BookOpen, HelpCircle, LogIn, LogOut, UserCircle, Globe } from 'lucide-vue-next'
 import { useGuideStore } from '@/stores/guide'
 import { useAuthStore } from '@/stores/auth'
 
@@ -18,12 +18,13 @@ function handleLogout() {
 }
 
 const navItems = [
-  { to: '/publications', icon: BookOpen, label: 'Publicaciones' },
-  { to: '/upload',       icon: Upload,          label: 'Subir PDF' },
+  { to: '/publications', icon: BookOpen,         label: 'Publicaciones' },
+  { to: '/upload',       icon: Upload,           label: 'Subir PDF' },
   { to: '/journals',     icon: BookMarked,       label: 'Revistas JCR' },
   { to: '/researchers',  icon: Users,            label: 'Investigadores' },
   { to: '/students',     icon: GraduationCap,    label: 'Estudiantes' },
   { to: '/collaboration-map', icon: Network,     label: 'Mapa Colaboración' },
+  { to: '/map',          icon: Globe,            label: 'Mapa 3D' },
   { to: '/gantt',        icon: GanttChartSquare, label: 'Planificación' },
   { to: '/my-tasks',     icon: ClipboardList,    label: 'Mis Tareas' },
 ]
