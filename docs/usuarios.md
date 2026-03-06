@@ -1,134 +1,151 @@
-# Guía de Usuario — CECAN Platform
+# Usuarios y Miembros del Sistema
+
+> **Nota:** Los "usuarios" en CECAN son **miembros académicos** registrados en la tabla `academic_members`.
+> El sistema de autenticación JWT está preparado en el backend pero **aún no está activado** —
+> actualmente no hay login ni contraseñas. Todos los endpoints son públicos.
 
 ---
 
-## Navegación
+## Miembros de prueba (seed)
 
-El sidebar izquierdo da acceso a todas las secciones:
+Creados por `scripts/seed_users.py`. Son idempotentes (no duplican si el email ya existe).
 
-| Sección | Ruta | Función |
-|---------|------|---------|
-| 🗺️ Mapa 3D | `/` | Visualización espacial de publicaciones por cluster |
-| 📄 Publicaciones | `/publications` | Tabla con métricas JCR, filtros y upload |
-| 📤 Subir PDF | `/upload` | Subida simple de uno o varios PDFs |
-| 📚 Revistas JCR | `/journals` | Búsqueda en catálogo JCR de 35.000+ revistas |
-| 👥 Investigadores | `/researchers` | Directorio de investigadores con métricas |
-| 🎓 Estudiantes | `/students` | Estudiantes y tesistas del centro |
-| 🗂️ Proyectos | `/projects` | Proyectos científicos activos |
-| 🔗 Mapa Colaboración | `/collaboration-map` | Grafo de redes de colaboración |
-| 📊 Planificación | `/gantt` | Gantt interactivo por proyecto o global |
-| ✅ Mis Tareas | `/my-tasks` | Actividades asignadas vía RACI |
+### Investigadores
 
----
+| ID | Nombre | Email | Institución | WP | ORCID |
+|----|--------|-------|-------------|-----|-------|
+| — | Dra. María González Reyes | `m.gonzalez@cecan.cl` | Universidad de Chile | WP1 | `0000-0001-2345-6789` |
+| — | Dr. Carlos Mendoza Fuentes | `c.mendoza@cecan.cl` | P. Universidad Católica | WP2 | `0000-0002-3456-7890` |
+| — | Dra. Valentina Rojas Castro | `v.rojas@cecan.cl` | Universidad de Concepción | WP3 | `0000-0003-4567-8901` |
+| — | Dr. Andrés Herrera Lagos | `a.herrera@cecan.cl` | Universidad de Santiago | WP4 | `0000-0004-5678-9012` |
 
-## Cómo subir una publicación
+### Staff
 
-### Opción 1: Drag & Drop en Publicaciones
+| Nombre | Email | Institución |
+|--------|-------|-------------|
+| Felipe Soto Vargas | `f.soto@cecan.cl` | CECAN |
 
-1. Ir a `/publications`
-2. Arrastrar uno o más PDFs sobre la página
-3. El sistema extrae el DOI automáticamente
-4. Si encuentra la revista en JCR → muestra cuartil, IF y percentil en verde
-5. Si no encuentra → se puede ingresar el DOI manualmente
-
-### Opción 2: Botón "Subir PDF"
-
-1. Ir a `/publications` o `/upload`
-2. Click en "Subir PDF"
-3. Seleccionar el archivo PDF
-4. Mismo proceso que drag & drop
-
-### Opción 3: DOI manual
-
-1. Click en "Ingresar DOI"
-2. Escribir el DOI en formato `10.xxxx/yyyy`
-3. El sistema consulta OpenAlex y busca la revista en JCR
+> **Contraseñas:** No aplica. Estos registros son datos académicos, no cuentas de acceso.
+> Cuando se implemente auth, las credenciales se gestionarán por separado (Supabase Auth o JWT propio).
 
 ---
 
-## Interpretar los resultados
+## Relaciones entre entidades
 
-### Notificaciones de upload
+```mermaid
+erDiagram
+    academic_members {
+        int id PK
+        string full_name
+        string email
+        string rut
+        string institution
+        string member_type
+        int wp_id
+        bool is_active
+    }
 
-| Color | Significado |
-|-------|-------------|
-| 🟢 Verde | Revista encontrada en JCR con métricas |
-| 🟦 Azul | DOI encontrado pero revista no en base JCR local |
-| 🟡 Amarillo | No se detectó DOI en el PDF |
-| 🔴 Rojo | Error al procesar |
+    researcher_details {
+        int id PK
+        int member_id FK
+        string orcid
+        string category
+        int indice_h
+        int citaciones_totales
+        int works_count
+    }
 
-### Indicadores en la tabla
+    scientific_projects {
+        int id PK
+        string title
+        string code
+        int pi_id FK
+        string status
+    }
 
-| Indicador | Significado |
-|-----------|-------------|
-| `Q1` verde | Cuartil 1 — mejor cuartil posible |
-| `Q2` azul | Cuartil 2 |
-| `Q3` amarillo | Cuartil 3 |
-| `Q4` rojo | Cuartil 4 |
-| `★ Top 10%` | JIF Percentil ≥ 90 |
+    project_activities {
+        int id PK
+        int project_id FK
+        string description
+        string status
+    }
 
----
+    responsibility_assignments {
+        int id PK
+        int member_id FK
+        int resource_id
+        string resource_type
+        string raci_role
+    }
 
-## Modo Leyendas Guía
-
-En la parte inferior del sidebar hay un botón **"Activar leyendas guía"**.
-
-Al activarlo, aparecen etiquetas azules sobre todos los controles interactivos explicando para qué sirven. Útil para nuevos usuarios.
-
-Click en "Desactivar leyendas" para ocultarlas.
-
----
-
-## Gantt — Planificación de proyectos
-
-### Vista por proyecto
-
-1. Ir a `/gantt`
-2. Seleccionar un proyecto del dropdown
-3. El Gantt carga las actividades automáticamente
-
-**Interacciones disponibles:**
-- **Arrastrar** una barra → cambia las fechas de la actividad
-- **Click** en una barra → abre modal de estado/progreso
-- **Botones expandir/contraer** → controlan el nivel de detalle
-- **Nueva actividad** → formulario inline para agregar tarea
-
-### Vista global
-
-Cambia al tab "Vista global" para ver todos los proyectos en una línea de tiempo por año. Útil para detectar solapamientos y cuellos de botella.
-
----
-
-## RACI — Asignar responsabilidades
-
-Al hacer hover sobre una actividad en el Gantt, aparecen dos íconos:
-
-- 👥 **Responsables RACI** → abre panel para asignar miembros
-- 🗑️ **Eliminar** → borra la actividad (pide confirmación)
-
-**Roles RACI:**
-
-| Rol | Descripción |
-|-----|-------------|
-| **R** — Responsible | Quien ejecuta la actividad |
-| **A** — Accountable | Quien responde por el resultado |
-| **C** — Consulted | Quien aporta input o expertise |
-| **I** — Informed | Quien recibe actualizaciones |
+    academic_members ||--o| researcher_details : "1 a 1 (solo researchers)"
+    academic_members ||--o{ scientific_projects : "pi_id (dirige)"
+    academic_members ||--o{ responsibility_assignments : "asignado a actividades"
+    scientific_projects ||--o{ project_activities : "tiene"
+    project_activities ||--o{ responsibility_assignments : "resource_id (RACI)"
+```
 
 ---
 
-## Mis Tareas
+## Cómo se relacionan
 
-En `/my-tasks` se muestran todas las actividades en las que el usuario tiene una asignación RACI, con indicador de vencimiento para actividades atrasadas.
+```mermaid
+flowchart TD
+    AM["👤 academic_members\nInvestigador / Staff"]
+
+    AM -->|"1:1\nsolo researchers"| RD["📊 researcher_details\nORCID, índice H, citas"]
+    AM -->|"como PI\ndirige"| SP["🗂️ scientific_projects\nProyecto científico"]
+    AM -->|"asignado como\nR / A / C / I"| RA["✅ responsibility_assignments\nRACI"]
+
+    SP -->|"tiene"| PA["📋 project_activities\nActividades del Gantt"]
+    PA -->|"resource_id"| RA
+```
+
+### En palabras simples
+
+1. **Un `academic_member`** puede ser investigador (`researcher`) o staff.
+2. **Los investigadores** tienen un registro adicional en `researcher_details` con métricas bibliométricas (ORCID, índice H, citas).
+3. **Un investigador puede ser PI** (Principal Investigator) de uno o más proyectos — referenciado por `scientific_projects.pi_id`.
+4. **Los proyectos tienen actividades** (`project_activities`) que forman el Gantt.
+5. **Las actividades tienen asignaciones RACI** (`responsibility_assignments`) que vinculan miembros con roles R/A/C/I.
+6. **Mis Tareas** (`/my-tasks`) muestra todas las actividades donde un miembro tiene cualquier rol RACI.
 
 ---
 
-## Mapa 3D — Navegación
+## Tipos de miembro
 
-| Acción | Resultado |
-|--------|-----------|
-| Click + arrastrar | Rota el mapa |
-| Scroll | Acerca/aleja |
-| Slider zoom | Acerca/aleja suavemente |
-| Hover sobre punto | Muestra tooltip con datos del paper |
-| Click en cluster (leyenda) | Muestra/oculta ese cluster |
+| `member_type` | Descripción | Tiene `researcher_details` |
+|---------------|-------------|--------------------------|
+| `researcher` | Investigador académico | ✅ Sí |
+| `staff` | Personal administrativo / apoyo | ❌ No |
+| `pi` | Investigador Principal (puede usarse como alias) | ✅ Sí |
+
+---
+
+## Roles RACI
+
+| Rol | Letra | Descripción |
+|-----|-------|-------------|
+| **Responsible** | `R` | Quien ejecuta la tarea |
+| **Accountable** | `A` | Quien responde por el resultado final |
+| **Consulted** | `C` | Quien aporta expertise o input |
+| **Informed** | `I` | Quien recibe actualizaciones del avance |
+
+Una actividad puede tener múltiples miembros con distintos roles.
+
+---
+
+## Ejecutar el seed
+
+```bash
+cd /ruta/al/proyecto
+python scripts/seed_users.py
+```
+
+El script es **idempotente** — si un email ya existe, lo omite sin error.
+
+---
+
+## Cuando se implemente autenticación
+
+El plan previsto es usar **Supabase Auth** o el sistema JWT propio del backend (`SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` ya están configurados). Las cuentas de acceso serán independientes de `academic_members` y se vincularán por email.
