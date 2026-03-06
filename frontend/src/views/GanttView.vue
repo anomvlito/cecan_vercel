@@ -7,7 +7,7 @@ import ActivityStatusModal from '@/components/projects/ActivityStatusModal.vue'
 import ProjectsGantt from '@/components/projects/ProjectsGantt.vue'
 import {
   Plus, Trash2, Users, X, AlertCircle, BarChart2, List, Calendar,
-  ChevronDown, ChevronRight,
+  ChevronsDownUp, ChevronsUpDown,
 } from 'lucide-vue-next'
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -261,15 +261,37 @@ const raciColors: Record<string, string> = {
         </div>
       </template>
 
-      <!-- Nueva actividad -->
-      <button
-        v-if="activeTab === 'project' && selectedProjectId"
-        class="ml-auto flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors shrink-0"
-        @click="showAddForm = !showAddForm"
-      >
-        <Plus class="w-3.5 h-3.5" />
-        Nueva actividad
-      </button>
+      <!-- Botones Gantt (solo en tab proyecto con proyecto seleccionado) -->
+      <template v-if="activeTab === 'project' && selectedProjectId">
+        <div class="ml-auto flex items-center gap-1 shrink-0">
+          <!-- Expandir todo -->
+          <button
+            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            title="Expandir todo"
+            @click="ganttRef?.expandAll()"
+          >
+            <ChevronsUpDown class="w-3.5 h-3.5" />
+            Expandir
+          </button>
+          <!-- Contraer todo -->
+          <button
+            class="flex items-center gap-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            title="Contraer todo"
+            @click="ganttRef?.collapseAll()"
+          >
+            <ChevronsDownUp class="w-3.5 h-3.5" />
+            Contraer
+          </button>
+          <!-- Nueva actividad -->
+          <button
+            class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+            @click="showAddForm = !showAddForm"
+          >
+            <Plus class="w-3.5 h-3.5" />
+            Nueva actividad
+          </button>
+        </div>
+      </template>
     </div>
 
     <!-- Error bar -->

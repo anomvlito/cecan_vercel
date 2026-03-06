@@ -220,7 +220,15 @@ onBeforeUnmount(() => {
 
 watch(() => props.projectId, (v) => { if (v) loadData() })
 
-defineExpose({ reload: loadData })
+function expandAll() {
+  g.eachTask((task: any) => { g.open(task.id) })
+}
+
+function collapseAll() {
+  g.eachTask((task: any) => { g.close(task.id) })
+}
+
+defineExpose({ reload: loadData, expandAll, collapseAll })
 </script>
 
 <template>
