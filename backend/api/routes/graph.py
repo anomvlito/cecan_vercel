@@ -42,9 +42,9 @@ def get_graph_data(db: Session = Depends(get_db)):
 
     for r in researchers:
         node_id = f"inv_{r.id}"
-        # Tamaño proporcional al h-index (base 20, máx ~55)
+        # Tamaño proporcional al h-index — base y escala al doble (base 40, máx ~110)
         h = r.indice_h or 0
-        size = 20 + min(h * 0.6, 35)
+        size = 40 + min(h * 1.2, 70)
 
         add_node(
             node_id,
@@ -76,7 +76,7 @@ def get_graph_data(db: Session = Depends(get_db)):
             label=f"WP {wp.id}",
             title=wp.name,
             group="wp",
-            size=50,
+            size=100,
             shape="ellipse",
             color={"background": "#818cf8", "border": "#6366f1",
                    "highlight": {"background": "#a5b4fc", "border": "#4f46e5"}},
@@ -92,6 +92,7 @@ def get_graph_data(db: Session = Depends(get_db)):
             node_id,
             label=n.name,
             group="nodo",
+            size=50,
             shape="box",
             color={"background": "#164e63", "border": "#0e7490",
                    "highlight": {"background": "#0e7490", "border": "#06b6d4"}},
@@ -113,7 +114,7 @@ def get_graph_data(db: Session = Depends(get_db)):
             title=p.title,
             group="project",
             shape="diamond",
-            size=18,
+            size=36,
             color={"background": "#065f46", "border": "#059669",
                    "highlight": {"background": "#059669", "border": "#10b981"}},
             font={"color": "#6ee7b7", "size": 10},
