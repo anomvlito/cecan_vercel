@@ -31,6 +31,7 @@ interface Cluster {
 // ─── State ───────────────────────────────────────────────────────────────────
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const loading = ref(true)
+const error = ref<string | null>(null)
 const points = ref<MapPoint[]>([])
 const clusters = ref<Cluster[]>([])
 const hovered = ref<MapPoint | null>(null)
@@ -71,21 +72,31 @@ async function fetchMap() {
   visibleClusters.value = new Set(data.clusters.map((c: Cluster) => c.id))
 }
 
+// ─── Dimensiones del canvas ───────────────────────────────────────────────────
+function canvasSize(): { w: number; h: number } {
+  const sidebar = 224 // w-56
+  const topbar = window.innerWidth < 768 ? 56 : 0
+  return {
+    w: window.innerWidth - sidebar,
+    h: window.innerHeight - topbar,
+  }
+}
+
 // ─── Three.js setup ───────────────────────────────────────────────────────────
 function initScene() {
   const canvas = canvasRef.value!
-  const w = canvas.offsetWidth || window.innerWidth
-  const h = canvas.offsetHeight || window.innerHeight
+  const { w, h } = canvasSize()
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setSize(w, h, false)
+  renderer.setSize(w, h)
   renderer.setClearColor(0x06080f, 1)
 
   scene = new THREE.Scene()
   scene.fog = new THREE.FogExp2(0x06080f, 0.04)
 
   camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 200)
+
   camera.position.set(5, 8, 18)
 
   controls = new OrbitControls(camera, canvas)
@@ -247,12 +258,10 @@ function onMouseMove(e: MouseEvent) {
 
 // ─── Resize ───────────────────────────────────────────────────────────────────
 function onResize() {
-  const canvas = canvasRef.value!
-  const w = canvas.offsetWidth || window.innerWidth
-  const h = canvas.offsetHeight || window.innerHeight
+  const { w, h } = canvasSize()
   camera.aspect = w / h
   camera.updateProjectionMatrix()
-  renderer.setSize(w, h, false)
+  renderer.setSize(w, h)
 }
 
 // ─── Toggle cluster visibility ────────────────────────────────────────────────
@@ -272,16 +281,16 @@ function toggleCluster(id: number) {
 onMounted(async () => {
   try {
     await fetchMap()
-  } catch {
     loading.value = false
-    return
+    await new Promise(r => setTimeout(r, 50))
+    initScene()
+    animate()
+    window.addEventListener('resize', onResize)
+    canvasRef.value?.addEventListener('mousemove', onMouseMove)
+  } catch (e) {
+    loading.value = false
+    error.value = `Error cargando el mapa: ${e instanceof Error ? e.message : 'Sin conexión al servidor'}`
   }
-  loading.value = false
-  await new Promise(r => setTimeout(r, 50))
-  initScene()
-  animate()
-  window.addEventListener('resize', onResize)
-  canvasRef.value?.addEventListener('mousemove', onMouseMove)
 })
 
 onUnmounted(() => {
@@ -300,7 +309,7 @@ const hoveredClusterColor = computed(
 </script>
 
 <template>
-  <div class="relative w-full bg-[#06080f] overflow-hidden select-none" style="height: 100%">
+  <div class="fixed inset-0 md:left-56 bg-[#06080f] overflow-hidden select-none" style="top: 0">
 
     <!-- Loading -->
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center z-10">
@@ -310,8 +319,16 @@ const hoveredClusterColor = computed(
       </div>
     </div>
 
+    <!-- Error -->
+    <div v-else-if="error" class="absolute inset-0 flex items-center justify-center z-10">
+      <div class="text-center max-w-sm px-6">
+        <p class="text-red-400 text-sm font-medium mb-1">No se pudo cargar el mapa</p>
+        <p class="text-gray-600 text-xs">{{ error }}</p>
+      </div>
+    </div>
+
     <!-- Canvas 3D -->
-    <canvas ref="canvasRef" class="absolute inset-0 w-full h-full" />
+    <canvas ref="canvasRef" />
 
     <!-- Título flotante -->
     <div class="absolute top-4 left-6 z-10 pointer-events-none">
