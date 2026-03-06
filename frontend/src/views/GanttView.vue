@@ -262,8 +262,8 @@ const selectedProject = computed(() =>
       <div class="flex items-center justify-between">
         <h1 class="text-lg font-bold text-gray-900">Planificación Gantt</h1>
         <button
-          v-if="selectedProjectId"
-          class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          :disabled="!selectedProjectId"
           @click="openCreate"
         >
           <Plus class="w-4 h-4" />
@@ -566,23 +566,91 @@ const selectedProject = computed(() =>
 </template>
 
 <style scoped>
-/* Contenedor del gantt */
+/* ── Contenedor ─────────────────────────────────────────────────── */
 .gantt-wrapper :deep(.gantt-container) {
   border: none;
+  font-family: inherit;
 }
-.gantt-wrapper :deep(.bar-wrapper .bar) {
+
+/* ── Barras por estado ──────────────────────────────────────────── */
+/* pending → gris */
+.gantt-wrapper :deep(.bar-wrapper.gantt-pending .bar) {
+  fill: #94a3b8;
+  rx: 4;
+}
+.gantt-wrapper :deep(.bar-wrapper.gantt-pending .bar-progress) {
+  fill: #64748b;
+}
+
+/* in_progress → azul */
+.gantt-wrapper :deep(.bar-wrapper.gantt-inprogress .bar) {
   fill: #3b82f6;
+  rx: 4;
 }
+.gantt-wrapper :deep(.bar-wrapper.gantt-inprogress .bar-progress) {
+  fill: #2563eb;
+}
+
+/* done → verde */
 .gantt-wrapper :deep(.bar-wrapper.gantt-done .bar) {
   fill: #22c55e;
+  rx: 4;
 }
-.gantt-wrapper :deep(.bar-wrapper.gantt-inprogress .bar) {
-  fill: #f59e0b;
+.gantt-wrapper :deep(.bar-wrapper.gantt-done .bar-progress) {
+  fill: #16a34a;
 }
+
+/* blocked → rojo */
 .gantt-wrapper :deep(.bar-wrapper.gantt-blocked .bar) {
-  fill: #ef4444;
+  fill: #f87171;
+  rx: 4;
 }
-.gantt-wrapper :deep(.bar-wrapper.gantt-pending .bar) {
-  fill: #6b7280;
+.gantt-wrapper :deep(.bar-wrapper.gantt-blocked .bar-progress) {
+  fill: #dc2626;
+}
+
+/* ── Texto dentro de barra ──────────────────────────────────────── */
+.gantt-wrapper :deep(.bar-label) {
+  fill: #fff;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* ── Grid de fechas ─────────────────────────────────────────────── */
+.gantt-wrapper :deep(.lower-header .lower-text),
+.gantt-wrapper :deep(.upper-header .upper-text) {
+  fill: #374151;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.gantt-wrapper :deep(.grid-header) {
+  fill: #f9fafb;
+  stroke: #e5e7eb;
+}
+
+.gantt-wrapper :deep(.row-line),
+.gantt-wrapper :deep(.tick) {
+  stroke: #e5e7eb;
+}
+
+/* ── Fila hover ─────────────────────────────────────────────────── */
+.gantt-wrapper :deep(.grid-row:hover) {
+  fill: #eff6ff;
+}
+
+/* ── Barra activa ───────────────────────────────────────────────── */
+.gantt-wrapper :deep(.bar-wrapper:hover .bar) {
+  opacity: 0.85;
+}
+.gantt-wrapper :deep(.bar-wrapper.active .bar) {
+  stroke: #1d4ed8;
+  stroke-width: 2px;
+}
+
+/* ── Hoy ────────────────────────────────────────────────────────── */
+.gantt-wrapper :deep(.today-highlight) {
+  fill: #dbeafe;
+  opacity: 0.5;
 }
 </style>

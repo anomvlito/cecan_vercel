@@ -72,10 +72,12 @@ def list_activities(
         item = dict(r._mapping)
         # Calcular fechas reales a partir de start_month / end_month
         project_start = item.get("project_start_date")
-        if project_start:
+        sm = item.get("start_month")
+        em = item.get("end_month")
+        if project_start and sm is not None and em is not None:
             from dateutil.relativedelta import relativedelta
-            start = project_start + relativedelta(months=item["start_month"] - 1)
-            end = project_start + relativedelta(months=item["end_month"]) - relativedelta(days=1)
+            start = project_start + relativedelta(months=int(sm) - 1)
+            end = project_start + relativedelta(months=int(em)) - relativedelta(days=1)
             item["start_date"] = start.isoformat()
             item["end_date"] = end.isoformat()
         else:
