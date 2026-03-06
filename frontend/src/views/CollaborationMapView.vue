@@ -128,21 +128,31 @@ function onMouseMove(e: MouseEvent) {
 }
 
 // ─── Build 2D ─────────────────────────────────────────────────────────────────
+function connectedSet(): Set<string> {
+  const s = new Set<string>()
+  rawData?.edges.forEach(e => {
+    if (e['from'] != null) s.add(String(e['from']))
+    if (e['to'] != null)   s.add(String(e['to']))
+  })
+  return s
+}
+
 function build2D() {
   if (!containerRef.value || !rawData) return
 
-  // Pre-calcular nodos conectados para aplicar filtro desde el inicio
-  const connected = new Set<string>()
-  rawData.edges.forEach(e => {
-    if (e['from'] != null) connected.add(String(e['from']))
-    if (e['to'] != null)   connected.add(String(e['to']))
-  })
+  // Incluir en el DataSet SOLO los nodos que deben verse:
+  // nodos ocultos con hidden:true siguen en la física → el layout se agranda
+  // y el fit() los cuenta → todo aparece minúsculo.
+  // Solución: excluirlos del DataSet completamente.
+  const connected = connectedSet()
+  const nodesToShow = showUnconnected.value
+    ? rawData.nodes
+    : rawData.nodes.filter(n => connected.has(String(n['id'])))
 
-  allNodes = new DataSet<GraphNode>(rawData.nodes.map(n => ({
+  allNodes = new DataSet<GraphNode>(nodesToShow.map(n => ({
     ...n,
-    color:  getNodeColor(n['group'] as string),
-    font:   getNodeFont(n['group'] as string),
-    hidden: !showUnconnected.value && !connected.has(String(n['id'])),
+    color: getNodeColor(n['group'] as string),
+    font:  getNodeFont(n['group'] as string),
   })) as GraphNode[])
   allEdges = new DataSet<GraphEdge>(rawData.edges as GraphEdge[])
   containerRef.value.style.background = theme.value.bg
@@ -358,15 +368,20 @@ function toggleUnconnected() {
   if (view3D.value) {
     graph3d?.graphData(get3DGraphData())
   } else {
-    if (!allNodes || !allEdges) return
-    const connected = new Set<string>()
-    allEdges.get().forEach(e => {
-      if (e.from != null) connected.add(String(e.from))
-      if (e.to != null)   connected.add(String(e.to))
-    })
-    allNodes.update(allNodes.get().map((n: GraphNode) => ({
-      id: n.id, hidden: !showUnconnected.value && !connected.has(String(n.id)),
-    })))
+    if (!rawData || !allNodes) return
+    const connected = connectedSet()
+    if (showUnconnected.value) {
+      // Agregar los nodos aislados que no estaban en el DataSet
+      const existing = new Set(allNodes.getIds().map(String))
+      const toAdd = rawData.nodes
+        .filter(n => !existing.has(String(n['id'])))
+        .map(n => ({ ...n, color: getNodeColor(n['group'] as string), font: getNodeFont(n['group'] as string) }))
+      if (toAdd.length) allNodes.add(toAdd as GraphNode[])
+    } else {
+      // Eliminar los nodos sin conexión del DataSet para que no afecten la física
+      const toRemove = allNodes.getIds().filter(id => !connected.has(String(id)))
+      if (toRemove.length) allNodes.remove(toRemove)
+    }
   }
 }
 
