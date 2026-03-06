@@ -20,9 +20,13 @@ CLUSTER_COLORS = {
 def get_research_map(db: Session = Depends(get_db)):
     """Devuelve los puntos del mapa 3D con metadata de publicación."""
     rows = db.execute(text("""
-        SELECT id, x, y, z, cluster_id, cluster_label, publication_id
-        FROM research_map_points
-        ORDER BY cluster_id, id
+        SELECT
+            rmp.id, rmp.x, rmp.y, rmp.z,
+            rmp.cluster_id, rmp.cluster_label, rmp.publication_id,
+            lp.title, lp.year, lp.authors, lp.quartile, lp.canonical_doi
+        FROM research_map_points rmp
+        LEFT JOIN legacy_publications lp ON lp.id = rmp.publication_id
+        ORDER BY rmp.cluster_id, rmp.id
     """)).fetchall()
 
     points = []
@@ -41,11 +45,11 @@ def get_research_map(db: Session = Depends(get_db)):
             "cluster_label": r.cluster_label or f"Cluster {cluster_id + 1}",
             "color": color,
             "publication_id": r.publication_id,
-            "title": None,
-            "year": None,
-            "authors": None,
-            "quartile": None,
-            "doi": None,
+            "title": r.title,
+            "year": r.year,
+            "authors": r.authors,
+            "quartile": r.quartile,
+            "doi": r.canonical_doi,
         }
         points.append(point)
 
