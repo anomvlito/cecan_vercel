@@ -139,6 +139,60 @@ export interface PaginatedResponse<T> {
   pages: number
 }
 
+export interface ProjectActivity {
+  id: number
+  project_id: number
+  number: number | null
+  description: string
+  start_month: number
+  end_month: number
+  status: string
+  progress: number
+  budget_allocated: number | null
+  payment_status: string | null
+  payment_proof_url: string | null
+  sort_order: number
+  notes: string | null
+  created_at: string | null
+  project_start_date: string | null
+  project_title: string | null
+  start_date: string | null
+  end_date: string | null
+}
+
+export interface ResponsibilityAssignment {
+  id: number
+  resource_type: string
+  resource_id: number
+  raci_role: 'R' | 'A' | 'C' | 'I'
+  member_id: number | null
+  created_at: string | null
+  created_by: number | null
+  member_name: string | null
+  member_email: string | null
+}
+
+export interface MyTask {
+  activity_id: number
+  activity_description: string
+  project_title: string
+  project_id: number
+  raci_role: 'R' | 'A' | 'C' | 'I'
+  member_name: string | null
+  member_id: number | null
+  status: string
+  progress: number
+  start_date: string | null
+  end_date: string | null
+  is_overdue: boolean
+}
+
+export interface AcademicMember {
+  id: number
+  full_name: string
+  email: string | null
+}
+
 export const QUARTILE_COLORS: Record<string, string> = {
   Q1: 'bg-green-100 text-green-800',
   Q2: 'bg-blue-100 text-blue-800',

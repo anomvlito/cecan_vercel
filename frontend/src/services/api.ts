@@ -7,6 +7,10 @@ import type {
   Student,
   ScientificProject,
   PaginatedResponse,
+  ProjectActivity,
+  ResponsibilityAssignment,
+  MyTask,
+  AcademicMember,
 } from '@/types/publication'
 
 const api = axios.create({
@@ -132,6 +136,85 @@ export const projectsApi = {
     if (params.page) p.page = params.page
     if (params.limit) p.limit = params.limit
     const { data } = await api.get<PaginatedResponse<ScientificProject>>('/projects', { params: p })
+    return data
+  },
+}
+
+export const projectActivitiesApi = {
+  list: async (projectId: number): Promise<ProjectActivity[]> => {
+    const { data } = await api.get<ProjectActivity[]>('/project-activities', {
+      params: { project_id: projectId },
+    })
+    return data
+  },
+
+  create: async (payload: {
+    project_id: number
+    description: string
+    number?: number | null
+    start_month?: number
+    end_month?: number
+    status?: string
+    progress?: number
+    budget_allocated?: number | null
+    notes?: string | null
+    sort_order?: number
+  }): Promise<ProjectActivity> => {
+    const { data } = await api.post<ProjectActivity>('/project-activities', payload)
+    return data
+  },
+
+  update: async (id: number, payload: Partial<{
+    description: string
+    number: number | null
+    start_month: number
+    end_month: number
+    status: string
+    progress: number
+    budget_allocated: number | null
+    notes: string | null
+    sort_order: number
+  }>): Promise<ProjectActivity> => {
+    const { data } = await api.put<ProjectActivity>(`/project-activities/${id}`, payload)
+    return data
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/project-activities/${id}`)
+  },
+}
+
+export const responsibilitiesApi = {
+  list: async (resourceType: string, resourceId: number): Promise<ResponsibilityAssignment[]> => {
+    const { data } = await api.get<ResponsibilityAssignment[]>('/responsibilities', {
+      params: { resource_type: resourceType, resource_id: resourceId },
+    })
+    return data
+  },
+
+  create: async (payload: {
+    resource_type: string
+    resource_id: number
+    raci_role: string
+    member_id?: number | null
+  }): Promise<ResponsibilityAssignment> => {
+    const { data } = await api.post<ResponsibilityAssignment>('/responsibilities', payload)
+    return data
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/responsibilities/${id}`)
+  },
+
+  myTasks: async (memberId?: number): Promise<MyTask[]> => {
+    const params: Record<string, number> = {}
+    if (memberId !== undefined) params.member_id = memberId
+    const { data } = await api.get<MyTask[]>('/my-tasks', { params })
+    return data
+  },
+
+  myTasksMembers: async (): Promise<AcademicMember[]> => {
+    const { data } = await api.get<AcademicMember[]>('/my-tasks/members')
     return data
   },
 }

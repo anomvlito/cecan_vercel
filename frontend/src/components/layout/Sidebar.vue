@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe, Network } from 'lucide-vue-next'
+import { BookOpen, Upload, FlaskConical, BookMarked, Users, GraduationCap, FolderOpen, X, Globe, Network, GanttChartSquare, ClipboardList } from 'lucide-vue-next'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
@@ -16,6 +16,8 @@ const navItems = [
   { to: '/students', icon: GraduationCap, label: 'Estudiantes' },
   { to: '/projects', icon: FolderOpen, label: 'Proyectos' },
   { to: '/collaboration-map', icon: Network, label: 'Mapa Colaboración' },
+  { to: '/gantt', icon: GanttChartSquare, label: 'Planificación' },
+  { to: '/my-tasks', icon: ClipboardList, label: 'Mis Tareas' },
 ]
 </script>
 

@@ -7,6 +7,8 @@ import ResearchersView from '../views/ResearchersView.vue'
 import StudentsView from '../views/StudentsView.vue'
 import ProjectsView from '../views/ProjectsView.vue'
 import CollaborationMapView from '../views/CollaborationMapView.vue'
+import GanttView from '../views/GanttView.vue'
+import MyTasksView from '../views/MyTasksView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +52,16 @@ const router = createRouter({
       path: '/collaboration-map',
       name: 'collaboration-map',
       component: CollaborationMapView,
+    },
+    {
+      path: '/gantt',
+      name: 'gantt',
+      component: GanttView,
+    },
+    {
+      path: '/my-tasks',
+      name: 'my-tasks',
+      component: MyTasksView,
     },
   ],
 })
